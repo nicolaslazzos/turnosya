@@ -23,6 +23,9 @@ import {
   ON_USER_PASSWORD_UPDATE
 } from './types';
 
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
+
 export const onClientDataValueChange = payload => {
   return { type: ON_CLIENT_DATA_VALUE_CHANGE, payload };
 };
@@ -64,22 +67,19 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
 };
 
 export const onUserRead = (clientId = firebase.auth().currentUser.uid) => {
-  const db = firebase.firestore();
-
   return dispatch => {
     dispatch({ type: ON_USER_READING });
 
-    db.doc(`Profiles/${clientId}`)
-      .get()
-      .then(doc =>
+    axios.get(`${backendUrl}/api/profiles/${clientId}/`)
+      .then(response => {
         dispatch({
           type: ON_USER_READ,
-          payload: { ...doc.data(), clientId: doc.id }
+          payload: { ...response.data }
         })
-      )
+      })
       .catch(error => dispatch({ type: ON_USER_READ_FAIL }));
   };
-};
+}
 
 export const onUserUpdate = ({ firstName, lastName, phone, province, profilePicture }) => async dispatch => {
   dispatch({ type: ON_USER_UPDATING });
