@@ -1,5 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
 import { userReauthenticate } from './AuthActions';
 import {
   ON_CLIENT_DATA_VALUE_CHANGE,
@@ -35,26 +36,22 @@ export const onRegisterFormOpen = () => {
 };
 
 export const onUserRegister = ({ email, password, firstName, lastName, phone, province }) => {
+  console.log(province)
   return dispatch => {
     dispatch({ type: ON_USER_REGISTER });
-
-    const db = firebase.firestore();
 
     firebase
       .auth()
       .createUserWithEmailAndPassword(email, password)
       .then(user => {
-        db.collection('Profiles')
-          .doc(user.user.uid)
-          .set({
-            firstName,
-            lastName,
-            email,
-            phone,
-            province,
-            commerceId: null,
-            softDelete: null
-          })
+        axios.post(`${backendUrl}/api/profiles/`, {
+          clientId: user.user.uid,
+          firstName,
+          lastName,
+          email,
+          phone,
+          provinceId: parseInt(province.provinceId),
+        })
           .then(() => {
             dispatch({ type: ON_USER_REGISTER_SUCCESS, payload: user });
             dispatch({ type: ON_EMAIL_VERIFY_REMINDED });
@@ -66,20 +63,26 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
   };
 };
 
-export const onUserRead = (clientId = firebase.auth().currentUser.uid) => {
-  return dispatch => {
-    dispatch({ type: ON_USER_READING });
+export const onUserRead = (clientId = firebase.auth().currentUser.uid) => async dispatch => {
+  dispatch({ type: ON_USER_READING });
 
-    axios.get(`${backendUrl}/api/profiles/${clientId}/`)
-      .then(response => {
-        dispatch({
-          type: ON_USER_READ,
-          payload: { ...response.data }
-        })
-      })
-      .catch(error => dispatch({ type: ON_USER_READ_FAIL }));
-  };
-}
+  try {
+    const profile = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
+    let province = null;
+
+    if (profile.data.provinceId) {
+      province = await axios.get(`${backendUrl}/api/provinces/${profile.data.provinceId}/`);
+      province = { name: province.data.name, provinceId: province.data.pk };
+    }
+
+    dispatch({
+      type: ON_USER_READ,
+      payload: { ...profile.data, province }
+    });
+  } catch (error) {
+    dispatch({ type: ON_USER_READ_FAIL });
+  }
+};
 
 export const onUserUpdate = ({ firstName, lastName, phone, province, profilePicture }) => async dispatch => {
   dispatch({ type: ON_USER_UPDATING });

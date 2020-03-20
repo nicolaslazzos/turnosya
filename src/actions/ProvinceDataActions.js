@@ -16,7 +16,7 @@ const onProvincesRead = prop => {
 
         response.data.forEach(province => {
           if (prop === 'id') {
-            provincesList.push({ value: province.pk.toString(), label: province.name })
+            provincesList.push({ value: province.pk, label: province.name })
           } else {
             provincesList.push({ value: province[prop], label: province.name })
           }
