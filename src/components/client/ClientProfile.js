@@ -49,9 +49,9 @@ class ClientProfile extends Component {
   };
 
   onEditPress = () => {
-    const { firstName, lastName, phone, profilePicture } = this.props;
+    const { firstName, lastName, phone, profilePicture, province } = this.props;
 
-    this.setState({ editEnabled: true, stateBeforeChanges: { firstName, lastName, phone, profilePicture } });
+    this.setState({ editEnabled: true, stateBeforeChanges: { firstName, lastName, phone, profilePicture, province } });
 
     this.props.navigation.setParams({
       title: 'Modificar Datos',
@@ -325,7 +325,7 @@ class ClientProfile extends Component {
               title="Provincia:"
               placeholder={this.state.pickerPlaceholder}
               items={this.props.provincesList}
-              value={this.props.province.provinceId}
+              value={this.props.province ? this.props.province.provinceId : null}
               disabled={!this.state.editEnabled}
               onValueChange={value => this.onProvincePickerChange(value)}
             />

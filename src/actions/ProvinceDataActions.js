@@ -10,20 +10,8 @@ export const onProvincesNameRead = () => onProvincesRead('name');
 
 const onProvincesRead = prop => {
   return dispatch => {
-    axios.get(`${backendUrl}/api/provinces/`)
-      .then(response => {
-        const provincesList = [];
-
-        response.data.forEach(province => {
-          if (prop === 'id') {
-            provincesList.push({ value: province.pk, label: province.name })
-          } else {
-            provincesList.push({ value: province[prop], label: province.name })
-          }
-        });
-
-        dispatch({ type: ON_PROVINCES_READ, payload: provincesList });
-      })
+    axios.get(`${backendUrl}/api/provinces/${prop}`)
+      .then(response => dispatch({ type: ON_PROVINCES_READ, payload: response.data }))
       .catch(error => console.error(error))
   };
 };

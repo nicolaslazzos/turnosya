@@ -50,7 +50,7 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
           lastName,
           email,
           phone,
-          provinceId: parseInt(province.provinceId),
+          provinceId: province.provinceId ? parseInt(province.provinceId) : null
         })
           .then(() => {
             dispatch({ type: ON_USER_REGISTER_SUCCESS, payload: user });
@@ -67,17 +67,11 @@ export const onUserRead = (clientId = firebase.auth().currentUser.uid) => async 
   dispatch({ type: ON_USER_READING });
 
   try {
-    const profile = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
-    let province = null;
-
-    if (profile.data.provinceId) {
-      province = await axios.get(`${backendUrl}/api/provinces/${profile.data.provinceId}/`);
-      province = { name: province.data.name, provinceId: province.data.pk };
-    }
-
+    const response = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
+    console.log(response.data)
     dispatch({
       type: ON_USER_READ,
-      payload: { ...profile.data, province }
+      payload: response.data
     });
   } catch (error) {
     dispatch({ type: ON_USER_READ_FAIL });
