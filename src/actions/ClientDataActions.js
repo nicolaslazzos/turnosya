@@ -36,7 +36,6 @@ export const onRegisterFormOpen = () => {
 };
 
 export const onUserRegister = ({ email, password, firstName, lastName, phone, province }) => {
-  console.log(province)
   return dispatch => {
     dispatch({ type: ON_USER_REGISTER });
 
@@ -44,7 +43,7 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
       .auth()
       .createUserWithEmailAndPassword(email, password)
       .then(user => {
-        axios.post(`${backendUrl}/api/profiles/`, {
+        axios.post(`${backendUrl}/api/profiles/create/`, {
           clientId: user.user.uid,
           firstName,
           lastName,
@@ -68,7 +67,6 @@ export const onUserRead = (clientId = firebase.auth().currentUser.uid) => async 
 
   try {
     const response = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
-    console.log(response.data)
     dispatch({
       type: ON_USER_READ,
       payload: response.data
@@ -96,19 +94,17 @@ export const onUserUpdate = ({ firstName, lastName, phone, province, profilePict
       url = await snapshot.ref.getDownloadURL();
     }
 
-    await firebase
-      .firestore()
-      .doc(`Profiles/${currentUser.uid}`)
-      .update({
-        firstName,
-        lastName,
-        phone,
-        province,
-        profilePicture: url ? url : profilePicture
-      });
+    await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, {
+      firstName,
+      lastName,
+      phone,
+      provinceId: province.provinceId ? parseInt(province.provinceId) : null,
+      profilePicture: url ? url : profilePicture
+    });
 
     dispatch({ type: ON_USER_UPDATED, payload: url ? url : profilePicture });
   } catch (error) {
+    console.log(error)
     dispatch({ type: ON_USER_UPDATE_FAIL });
   } finally {
     profilePicture.close && profilePicture.close();
@@ -117,8 +113,8 @@ export const onUserUpdate = ({ firstName, lastName, phone, province, profilePict
 
 export const onUserDelete = password => {
   const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
-  const batch = db.batch();
+  // const db = firebase.firestore();
+  // const batch = db.batch();
 
   return dispatch => {
     dispatch({ type: ON_USER_DELETING });
@@ -128,29 +124,29 @@ export const onUserDelete = password => {
         dispatch({ type: ON_REAUTH_SUCCESS });
 
         try {
-          const userRef = db.doc(`Profiles/${currentUser.uid}`);
+          await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, {
+            softDelete: new Date()
+          });
 
-          batch.update(userRef, { softDelete: new Date() });
+          // const workplaces = await db
+          //   .collection(`Profiles/${currentUser.uid}/Workplaces`)
+          //   .where('softDelete', '==', null)
+          //   .get();
 
-          const workplaces = await db
-            .collection(`Profiles/${currentUser.uid}/Workplaces`)
-            .where('softDelete', '==', null)
-            .get();
+          // for await (const workplace of workplaces.docs) {
+          //   const employees = await db
+          //     .collection(`Commerces/${workplace.data().commerceId}/Employees`)
+          //     .where('softDelete', '==', null)
+          //     .where('profileId', '==', currentUser.uid)
+          //     .get();
 
-          for await (const workplace of workplaces.docs) {
-            const employees = await db
-              .collection(`Commerces/${workplace.data().commerceId}/Employees`)
-              .where('softDelete', '==', null)
-              .where('profileId', '==', currentUser.uid)
-              .get();
+          //   employees.forEach(employee => {
+          //     batch.update(employee.ref, { softDelete: new Date() });
+          //   });
+          // }
 
-            employees.forEach(employee => {
-              batch.update(employee.ref, { softDelete: new Date() });
-            });
-          }
-
-          await batch.commit();
-          await currentUser.delete();
+          // await batch.commit();
+          // await currentUser.delete();
 
           dispatch({ type: ON_USER_DELETED });
         } catch (error) {
