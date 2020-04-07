@@ -11,14 +11,14 @@ class CommerceListItem extends Component {
 
   componentDidMount() {
     this.setState({
-      favorite: this.props.favoriteCommerces.includes(this.props.commerce.objectID)
+      favorite: this.props.favoriteCommerces.includes(this.props.commerce.commerceId)
     });
   }
 
   componentDidUpdate(prevProps) {
     if (prevProps.favoriteCommerces !== this.props.favoriteCommerces) {
       this.setState({
-        favorite: this.props.favoriteCommerces.includes(this.props.commerce.objectID)
+        favorite: this.props.favoriteCommerces.includes(this.props.commerce.commerceId)
       });
     }
   }
@@ -37,18 +37,18 @@ class CommerceListItem extends Component {
   };
 
   renderSubtitle = () => {
-    const { areaName, address, city, provinceName } = this.props.commerce;
+    const { area, address, city, province } = this.props.commerce;
 
     return (
       <View>
-        <Text style={{ color: 'grey', fontSize: 14 }}>{areaName}</Text>
-        <Text style={{ color: 'grey', fontSize: 12 }}>{`${address}, ${city}, ${provinceName}`}</Text>
+        <Text style={{ color: 'grey', fontSize: 14 }}>{area.name}</Text>
+        <Text style={{ color: 'grey', fontSize: 12 }}>{`${address}, ${city}, ${province.name}`}</Text>
       </View>
     );
   };
 
   render() {
-    const { name, profilePicture, objectID } = this.props.commerce;
+    const { name, profilePicture, commerceId } = this.props.commerce;
 
     return (
       <ListItem
@@ -65,7 +65,7 @@ class CommerceListItem extends Component {
             containerStyle={{ borderRadius: 15, overflow: 'hidden' }}
             icon={<Icon name="favorite" color={this.state.favorite ? 'red' : '#c4c4c4'} size={25} />}
             buttonStyle={{ padding: 0 }}
-            onPress={() => this.onFavoritePress(objectID)}
+            onPress={() => this.onFavoritePress(commerceId)}
           />
         }
         onPress={this.onCommercePress}

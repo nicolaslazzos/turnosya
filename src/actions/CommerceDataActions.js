@@ -1,6 +1,12 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
-import algoliasearch from 'algoliasearch';
+import axios from 'axios';
+import getEnvVars from '../../environment';
+import { userReauthenticate } from './AuthActions';
+import { ROLES } from '../constants';
+import { onClientNotificationSend } from './NotificationActions';
+import { NOTIFICATION_TYPES } from '../constants';
+import { onReservationsCancel } from './ReservationsListActions';
 import {
   ON_REGISTER_COMMERCE,
   ON_COMMERCE_PROFILE_CREATE,
@@ -33,17 +39,8 @@ import {
   ON_CLIENT_DATA_VALUE_CHANGE,
   ON_EMPLOYEE_SELECT
 } from './types';
-import getEnvVars from '../../environment';
-import { userReauthenticate } from './AuthActions';
-import { ROLES } from '../constants';
-import { onClientNotificationSend } from './NotificationActions';
-import { NOTIFICATION_TYPES } from '../constants';
-import { onReservationsCancel } from './ReservationsListActions';
 
-const { appId, adminApiKey, commercesIndex } = getEnvVars().algoliaConfig;
-
-const client = algoliasearch(appId, adminApiKey);
-const index = client.initIndex(commercesIndex);
+const { backendUrl } = getEnvVars();
 
 export const onCommerceValueChange = payload => {
   return { type: ON_COMMERCE_VALUE_CHANGE, payload };
@@ -131,22 +128,6 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
 
     await batch.commit();
 
-    await index.addObject({
-      objectID: commerceId,
-      name,
-      description,
-      areaName: area.name,
-      address,
-      city,
-      provinceName: province.name,
-      ...(latitude && longitude ? { _geoloc: { lat: latitude, lng: longitude } } : {})
-    });
-
-    dispatch({
-      type: ON_ROLE_ASSIGNED,
-      payload: { role: ROLES.OWNER, employeeId: employeesRef.id }
-    });
-
     dispatch({ type: ON_COMMERCE_VALUE_CHANGE, payload: { commerceId } });
 
     dispatch({ type: ON_COMMERCE_PROFILE_CREATE });
@@ -161,26 +142,24 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
 export const onCommerceRead = (commerceId, loadingType = 'loading') => async dispatch => {
   dispatch({ type: ON_COMMERCE_READING, payload: loadingType });
 
-  const db = firebase.firestore();
-
   try {
-    const doc = await db.doc(`Commerces/${commerceId}`).get();
+    const response = await axios.get(`${backendUrl}/api/commerces/${commerceId}/`);
+    const commerce = response.data;
 
     //province
-    var { name, provinceId } = doc.data().province;
+    var { name, provinceId } = commerce.province;
     const province = { value: provinceId, label: name };
 
     //area
-    var { name, areaId } = doc.data().area;
+    var { name, areaId } = commerce.area;
     const area = { value: areaId, label: name };
 
     dispatch({
       type: ON_COMMERCE_READ,
       payload: {
-        ...doc.data(),
+        ...commerce,
         provincesList: [province],
-        areasList: [area],
-        commerceId: doc.id
+        areasList: [area]
       }
     });
 
@@ -251,18 +230,6 @@ export const onCommerceUpdate = (commerceData, navigation) => async dispatch => 
         headerPicture: headerPictureURL ? headerPictureURL : headerPicture
       });
 
-    await index.saveObject({
-      address,
-      areaName: area.name,
-      profilePicture: profilePictureURL ? profilePictureURL : profilePicture,
-      objectID: commerceId,
-      description,
-      name,
-      city,
-      provinceName: province.name,
-      ...(latitude && longitude ? { _geoloc: { lat: latitude, lng: longitude } } : {})
-    });
-
     dispatch({
       type: ON_COMMERCE_UPDATED,
       payload: {
@@ -277,20 +244,10 @@ export const onCommerceUpdate = (commerceData, navigation) => async dispatch => 
   }
 };
 
-export const onAreasReadForPicker = () => {
-  const db = firebase.firestore();
-
-  return dispatch => {
-    db.collection('Areas')
-      .where('softDelete', '==', null)
-      .orderBy('name', 'asc')
-      .get()
-      .then(snapshot => {
-        const areasList = [];
-        snapshot.forEach(doc => areasList.push({ value: doc.id, label: doc.data().name }));
-        dispatch({ type: ON_AREAS_READ_FOR_PICKER, payload: areasList });
-      });
-  };
+export const onAreasReadForPicker = () => dispatch => {
+  axios.get(`${backendUrl}/api/areas/id/`)
+    .then(response => dispatch({ type: ON_AREAS_READ_FOR_PICKER, payload: response.data }))
+    .catch(error => console.error(error));
 };
 
 export const onCuitValidate = cuit => {
@@ -354,8 +311,6 @@ export const onCommerceDelete = (password, reservationsToCancel, navigation = nu
 
         await batch.commit();
 
-        await index.deleteObject(commerceId);
-
         reservationsToCancel.forEach(res => {
           if (res.clientId)
             onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
@@ -392,9 +347,9 @@ export const onCommerceMPagoTokenRead = commerceId => dispatch => {
         const currentToken = snapshot.docs.find(doc => doc.data().softDelete === null);
         currentToken
           ? dispatch({
-              type: ON_COMMERCE_MP_TOKEN_READ,
-              payload: { mPagoToken: currentToken.id, hasAnyMPagoToken: true }
-            })
+            type: ON_COMMERCE_MP_TOKEN_READ,
+            payload: { mPagoToken: currentToken.id, hasAnyMPagoToken: true }
+          })
           : dispatch({ type: ON_COMMERCE_MP_TOKEN_READ, payload: { mPagoToken: null, hasAnyMPagoToken: true } });
       } else {
         dispatch({ type: ON_COMMERCE_MP_TOKEN_READ, payload: { mPagoToken: null, hasAnyMPagoToken: false } });

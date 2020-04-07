@@ -8,10 +8,8 @@ export const onProvincesIdRead = () => onProvincesRead('id');
 
 export const onProvincesNameRead = () => onProvincesRead('name');
 
-const onProvincesRead = prop => {
-  return dispatch => {
-    axios.get(`${backendUrl}/api/provinces/${prop}`)
-      .then(response => dispatch({ type: ON_PROVINCES_READ, payload: response.data }))
-      .catch(error => console.error(error))
-  };
+const onProvincesRead = prop => dispatch => {
+  axios.get(`${backendUrl}/api/provinces/${prop}`)
+    .then(response => dispatch({ type: ON_PROVINCES_READ, payload: response.data }))
+    .catch(error => console.error(error));
 };

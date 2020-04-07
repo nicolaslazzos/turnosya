@@ -28,7 +28,7 @@ class CommerceProfileView extends Component {
     let { commerceId } = this.props;
 
     if (this.props.navigation.getParam('commerceId')) commerceId = this.props.navigation.getParam('commerceId');
-    else if (this.props.navigation.state.routeName === 'commerceProfileView') commerceId = this.props.commerce.objectID;
+    else if (this.props.navigation.state.routeName === 'commerceProfileView') commerceId = this.props.commerce.commerceId;
 
     this.setCommercePropsByID(commerceId);
   }
@@ -36,11 +36,12 @@ class CommerceProfileView extends Component {
   componentDidUpdate() {
     if (this.props.navigation.state.routeName === 'commerceProfileView') {
       if (
+        this.props.commerce &&
         this.props.commerceId &&
         !this.props.loadingProfile &&
-        this.props.commerce.objectID !== this.props.commerceId
+        this.props.commerce.commerceId !== this.props.commerceId
       ) {
-        this.setCommercePropsByID(this.props.commerce.objectID);
+        this.setCommercePropsByID(this.props.commerce.commerceId);
       }
     }
   }

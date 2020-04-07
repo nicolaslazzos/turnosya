@@ -11,7 +11,7 @@ class CommercesAreas extends Component {
     return {
       headerRight:
         <TouchableOpacity
-          onPress={() => navigation.navigate('commercesList', { areaName: '' })}
+          onPress={() => navigation.navigate('commercesList', { areaId: '' })}
           activeOpacity={0.5}
           style={{ backgorundColor: 'transparent' }}
         >
@@ -47,7 +47,7 @@ class CommercesAreas extends Component {
     }
     return (
       <View style={{ flex: 1 }}>
-        <FlatList data={this.props.areas} renderItem={this.renderRow} keyExtractor={area => area.id} />
+        <FlatList data={this.props.areas} renderItem={this.renderRow} keyExtractor={area => area.areaId} />
       </View>
     );
   }

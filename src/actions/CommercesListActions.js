@@ -1,5 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
+import getEnvVars from '../../environment';
 import {
   ON_FAVORITE_COMMERCE_ADDED,
   ON_FAVORITE_COMMERCE_DELETED,
@@ -7,48 +9,36 @@ import {
   ON_ONLY_FAVORITE_COMMERCES_READING,
   ON_AREAS_READING,
   ON_AREAS_SEARCH_READ,
-  ON_COMMERCES_LIST_VALUE_CHANGE
+  ON_COMMERCES_LIST_VALUE_CHANGE,
+  ON_COMMERCES_LIST_READ,
+  ON_COMMERCES_LIST_READ_FAIL,
+  ON_COMMERCES_LIST_READING
 } from './types';
+
+const { backendUrl } = getEnvVars();
 
 export const onCommercesListValueChange = payload => ({
   type: ON_COMMERCES_LIST_VALUE_CHANGE,
   payload
 });
 
-export const onCommerceHitsUpdate = hits => {
-  const normalizedHits = [];
+export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch => {
+  dispatch({ type: ON_COMMERCES_LIST_READING });
 
-  hits.forEach(hit => {
-    if (hit._geoloc) {
-      normalizedHits.push({
-        ...hit,
-        latitude: hit._geoloc.lat,
-        longitude: hit._geoloc.lng
-      });
-    }
-  });
+  axios.get(`${backendUrl}/api/commerces?areaId=${areaId || ''}&provinceId=${provinceId || ''}&contains=${contains || ''}`)
+    .then(response => dispatch({ type: ON_COMMERCES_LIST_READ, payload: response.data }))
+    .catch(error => {
+      console.error(error);
+      dispatch({ type: ON_COMMERCES_LIST_READ_FAIL });
+    });
+}
 
-  return {
-    type: ON_COMMERCES_LIST_VALUE_CHANGE,
-    payload: { markers: normalizedHits }
-  };
-};
+export const onAreasRead = () => dispatch => {
+  dispatch({ type: ON_AREAS_READING });
 
-export const onAreasRead = () => {
-  const db = firebase.firestore();
-
-  return dispatch => {
-    dispatch({ type: ON_AREAS_READING });
-    db.collection('Areas')
-      .where('softDelete', '==', null)
-      .orderBy('name', 'asc')
-      .get()
-      .then(snapshot => {
-        const areas = [];
-        snapshot.forEach(doc => areas.push({ ...doc.data(), id: doc.id }));
-        dispatch({ type: ON_AREAS_SEARCH_READ, payload: { areas } });
-      });
-  };
+  axios.get(`${backendUrl}/api/areas/`)
+    .then(response => dispatch({ type: ON_AREAS_SEARCH_READ, payload: { areas: response.data } }))
+    .catch(error => console.error(error));
 };
 
 export const onFavoriteCommerceDelete = commerceId => {

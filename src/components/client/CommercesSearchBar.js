@@ -1,13 +1,10 @@
 import React, { Component } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SearchBar } from 'react-native-elements';
-import { connectSearchBox } from 'react-instantsearch/connectors';
-import { connect } from 'react-redux';
 import Constants from 'expo-constants';
-import PropTypes from 'prop-types';
 import { MAIN_COLOR, NAVIGATION_HEIGHT } from '../../constants';
 
-class SearchBox extends Component {
+class CommercesSearchBar extends Component {
   render() {
     return (
       <View style={styles.mainContainer}>
@@ -15,9 +12,7 @@ class SearchBox extends Component {
           {...this.props}
           platform="android"
           placeholder="Buscar negocios..."
-          onChangeText={text => this.props.refine(text)}
           onCancel={this.props.onCancel}
-          value={this.props.currentRefinement}
           containerStyle={styles.searchBarContainer}
           inputStyle={{ marginTop: 1, marginLeft: 12, marginRight: 0 }}
           searchIcon={{ color: MAIN_COLOR }}
@@ -31,11 +26,6 @@ class SearchBox extends Component {
     );
   }
 }
-
-SearchBar.propTypes = {
-  refine: PropTypes.func.isRequired,
-  currentRefinement: PropTypes.string
-};
 
 const styles = StyleSheet.create({
   mainContainer: {
@@ -62,11 +52,4 @@ const styles = StyleSheet.create({
   }
 });
 
-const mapStateToProps = state => {
-  const { searching } = state.commercesList;
-  return { searching };
-};
-
-const ConnectedSearchBox = connectSearchBox(SearchBox);
-
-export default connect(mapStateToProps, {})(ConnectedSearchBox);
+export default CommercesSearchBar;

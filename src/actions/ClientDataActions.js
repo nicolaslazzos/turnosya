@@ -72,6 +72,7 @@ export const onUserRead = (clientId = firebase.auth().currentUser.uid) => async 
       payload: response.data
     });
   } catch (error) {
+    console.log(error)
     dispatch({ type: ON_USER_READ_FAIL });
   }
 };

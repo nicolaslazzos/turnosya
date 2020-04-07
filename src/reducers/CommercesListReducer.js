@@ -5,12 +5,16 @@ import {
   ON_ONLY_FAVORITE_COMMERCES_READING,
   ON_AREAS_READING,
   ON_AREAS_SEARCH_READ,
-  ON_COMMERCES_LIST_VALUE_CHANGE
+  ON_COMMERCES_LIST_VALUE_CHANGE,
+  ON_COMMERCES_LIST_READING,
+  ON_COMMERCES_LIST_READ,
+  ON_COMMERCES_LIST_READ_FAIL
 } from '../actions/types';
 
 const INITIAL_STATE = {
   onlyFavoriteCommerces: [],
   favoriteCommerces: [],
+  commerces: [],
   loading: false,
   searching: true,
   areas: [],
@@ -22,6 +26,15 @@ const INITIAL_STATE = {
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
+    case ON_COMMERCES_LIST_READING:
+      return { ...state, searching: true };
+    
+    case ON_COMMERCES_LIST_READ:
+      return { ...state, commerces: action.payload, searching: false };
+
+    case ON_COMMERCES_LIST_READ_FAIL:
+      return { ...state, searching: false };
+
     case ON_AREAS_READING:
     case ON_ONLY_FAVORITE_COMMERCES_READING:
       return { ...state, loading: true };

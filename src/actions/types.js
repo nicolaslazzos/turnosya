@@ -89,6 +89,9 @@ export const ON_COMMERCE_MP_TOKEN_SWITCH_FAIL = 'on_commerce_mp_token_switch_fai
 // Commerces List
 export const ON_AREAS_READING = 'on_areas_reading';
 export const ON_AREAS_SEARCH_READ = 'on_areas_search_read';
+export const ON_COMMERCES_LIST_READING = 'on_commerces_list_reading';
+export const ON_COMMERCES_LIST_READ = 'on_commerces_list_read';
+export const ON_COMMERCES_LIST_READ_FAIL = 'on_commerces_list_read_fail';
 export const ON_COMMERCES_LIST_VALUE_CHANGE = 'on_commerces_list_value_change';
 
 // Favorites

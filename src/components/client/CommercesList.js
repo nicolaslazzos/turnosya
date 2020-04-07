@@ -1,23 +1,17 @@
 import React, { Component } from 'react';
-import { View } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { connect } from 'react-redux';
-import { InstantSearch, Configure } from 'react-instantsearch/native';
 import { Fab } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
-import algoliasearch from 'algoliasearch';
 import { MAIN_COLOR } from '../../constants';
-import { IconButton } from '../common';
-import getEnvVars from '../../../environment';
-import ConnectedHits from './CommercesList.SearchHits';
-import ConnectedSearchBox from './CommercesList.SearchBox';
-import ConnectedStateResults from './CommercesList.StateResults';
-import { onFavoriteCommercesRead, onCommercesListValueChange, onSelectedLocationChange } from '../../actions';
-
-const { appId, searchApiKey, commercesIndex } = getEnvVars().algoliaConfig;
-
-const searchClient = algoliasearch(appId, searchApiKey, { _useRequestCache: true });
+import { IconButton, EmptyList, Spinner } from '../common';
+import CommerceListItem from './CommerceListItem';
+import CommercesSearchBar from './CommercesSearchBar';
+import { onFavoriteCommercesRead, onCommercesListValueChange, onSelectedLocationChange, onCommercesRead } from '../../actions';
 
 class CommercesList extends Component {
+  state = { areaId: this.props.navigation.getParam('areaId'), searchVisible: false, search: '' };
+
   static navigationOptions = ({ navigation }) => {
     return {
       headerRight: (
@@ -34,8 +28,6 @@ class CommercesList extends Component {
     };
   };
 
-  state = { areaName: this.props.navigation.state.params.areaName, searchVisible: false };
-
   componentDidMount() {
     this.props.navigation.setParams({
       onSearchPress: this.onSearchPress,
@@ -43,7 +35,10 @@ class CommercesList extends Component {
       header: undefined
     });
 
+    this.props.onCommercesRead({ areaId: this.state.areaId });
+
     this.props.onFavoriteCommercesRead();
+
     if (!this.props.provinceNameFilter) {
       this.props.onCommercesListValueChange({ provinceNameFilter: this.props.clientProvinceName });
     }
@@ -58,6 +53,7 @@ class CommercesList extends Component {
       locationButtonIndex: 0,
       provinceNameFilter: this.props.clientProvinceName ? this.props.clientProvinceName : ''
     });
+
     this.props.onSelectedLocationChange();
   };
 
@@ -65,6 +61,11 @@ class CommercesList extends Component {
     this.props.navigation.setParams({ header: null });
     this.setState({ searchVisible: true });
   };
+
+  onChangeText = text => {
+    this.props.onCommercesRead({ contains: text, areaId: this.state.areaId })
+    this.setState({ search: text });
+  }
 
   onFiltersPress = () => {
     this.props.navigation.navigate('commercesFiltersScreen');
@@ -75,55 +76,66 @@ class CommercesList extends Component {
     this.setState({ searchVisible: false });
   };
 
-  renderAlgoliaSearchBar = () => {
+  renderSearchBar = () => {
     if (this.state.searchVisible) {
-      return <ConnectedSearchBox autoFocus={true} showLoadingIndicator onCancel={this.onCancelPress} />;
+      return (
+        <CommercesSearchBar
+          onChangeText={this.onChangeText}
+          value={this.state.search}
+          onCancel={this.onCancelPress}
+          autoFocus={true}
+          showLoadingIndicator
+        />
+      );
     }
-  };
-
-  obtainFacetProps = () => {
-    if (this.state.areaName && this.props.provinceNameFilter)
-      return { filters: `areaName:\'${this.state.areaName}\' AND provinceName:\'${this.props.provinceNameFilter}\'` };
-    else if (this.state.areaName) return { filters: `areaName:\'${this.state.areaName}\'` };
-    else if (this.props.provinceNameFilter) return { filters: `provinceName:\'${this.props.provinceNameFilter}\'` };
-    else return null;
-  };
-
-  obtainGeolocationProps = () => {
-    return this.props.selectedLocation.latitude
-      ? {
-          aroundLatLng: `${this.props.selectedLocation.latitude}, ${this.props.selectedLocation.longitude}`,
-          aroundRadius: Math.round(1000 * this.props.locationRadiusKms)
-        }
-      : null;
   };
 
   onMapFabPress = () => {
     this.props.navigation.navigate('commercesListMap');
   };
 
+  renderItem({ item }) {
+    return <CommerceListItem commerce={item} />;
+  }
+
+  renderList() {
+    if (this.props.searching) return <Spinner />;
+
+    if (this.props.commerces.length) {
+      return (
+        <FlatList
+          data={this.props.commerces}
+          renderItem={this.renderItem}
+          keyExtractor={item => item.commerceId}
+          initialNumToRender={20}
+          contentContainerStyle={{ paddingBottom: 95 }}
+        />
+      )
+    }
+
+    return <EmptyList title="No se encontraron negocios" />;
+  }
+
   render() {
     return (
       <View style={{ flex: 1 }}>
-        <InstantSearch searchClient={searchClient} indexName={commercesIndex} stalledSearchDelay={0}>
-          {this.renderAlgoliaSearchBar()}
-          <Configure {...{ ...this.obtainFacetProps(), ...this.obtainGeolocationProps() }} />
-          <ConnectedStateResults />
-          <ConnectedHits />
-          <Fab style={{ backgroundColor: MAIN_COLOR }} position="bottomRight" onPress={this.onMapFabPress}>
-            <Ionicons name="md-compass" />
-          </Fab>
-        </InstantSearch>
+        {this.renderSearchBar()}
+        {this.renderList()}
+        <Fab style={{ backgroundColor: MAIN_COLOR }} position="bottomRight" onPress={this.onMapFabPress}>
+          <Ionicons name="md-compass" />
+        </Fab>
       </View>
     );
   }
 }
 
 const mapStateToProps = state => {
-  const { refinement, favoriteCommerces, provinceNameFilter, locationRadiusKms } = state.commercesList;
+  const { refinement, favoriteCommerces, provinceNameFilter, locationRadiusKms, searching, commerces } = state.commercesList;
   const { address, city, provinceName, country, latitude, longitude, selectedLocation } = state.locationData;
 
   return {
+    commerces,
+    searching,
     refinement,
     favoriteCommerces,
     provinceNameFilter,
@@ -142,5 +154,6 @@ const mapStateToProps = state => {
 export default connect(mapStateToProps, {
   onFavoriteCommercesRead,
   onCommercesListValueChange,
-  onSelectedLocationChange
+  onSelectedLocationChange,
+  onCommercesRead
 })(CommercesList);
