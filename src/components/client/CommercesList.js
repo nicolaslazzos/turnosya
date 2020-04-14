@@ -106,7 +106,7 @@ class CommercesList extends Component {
         <FlatList
           data={this.props.commerces}
           renderItem={this.renderItem}
-          keyExtractor={item => item.commerceId}
+          keyExtractor={commerce => commerce.commerceId.toString()}
           initialNumToRender={20}
           contentContainerStyle={{ paddingBottom: 95 }}
         />

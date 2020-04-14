@@ -25,7 +25,11 @@ export const onCommercesListValueChange = payload => ({
 export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch => {
   dispatch({ type: ON_COMMERCES_LIST_READING });
 
-  axios.get(`${backendUrl}/api/commerces?areaId=${areaId || ''}&provinceId=${provinceId || ''}&contains=${contains || ''}`)
+  axios.get(`${backendUrl}/api/commerces/`, {
+    areaId: areaId || '',
+    provinceId: provinceId || '',
+    contains: contains || ''
+  })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_READ, payload: response.data }))
     .catch(error => {
       console.error(error);
@@ -41,95 +45,51 @@ export const onAreasRead = () => dispatch => {
     .catch(error => console.error(error));
 };
 
-export const onFavoriteCommerceDelete = commerceId => {
-  const db = firebase.firestore();
-  const { currentUser } = firebase.auth();
-
-  return dispatch => {
-    db.doc(`Profiles/${currentUser.uid}/FavoriteCommerces/${commerceId}`)
-      .delete()
-      .then(() => dispatch({ type: ON_FAVORITE_COMMERCE_DELETED, payload: commerceId }))
-      .catch(error => console.error(error));
-  };
+export const onFavoriteCommerceDelete = favoriteId => dispatch => {
+  axios.delete(`${backendUrl}/api/favorites/delete/${favoriteId}/`)
+    .then(() => dispatch({ type: ON_FAVORITE_COMMERCE_DELETED, payload: favoriteId }))
+    .catch(error => console.error(error));
 };
 
-export const onFavoriteCommerceRegister = commerceId => {
-  const db = firebase.firestore();
+export const onFavoriteCommerceRegister = commerceId => dispatch => {
   const { currentUser } = firebase.auth();
 
-  return dispatch => {
-    db.doc(`Profiles/${currentUser.uid}/FavoriteCommerces/${commerceId}`)
-      .set({})
-      .then(() => dispatch({ type: ON_FAVORITE_COMMERCE_ADDED, payload: commerceId }))
-      .catch(error => console.error(error));
-  };
+  axios.post(`${backendUrl}/api/favorites/create/`, { commerceId, clientId: currentUser.uid })
+    .then(response => {
+      dispatch({ type: ON_FAVORITE_COMMERCE_ADDED, payload: response.data });
+      console.log(response);
+    })
+    .catch(error => console.error(error));
 };
 
-export const onFavoriteCommercesRead = () => {
-  const db = firebase.firestore();
+export const onFavoriteCommercesRead = () => dispatch => {
   const { currentUser } = firebase.auth();
 
-  return dispatch => {
-    db.collection(`Profiles/${currentUser.uid}/FavoriteCommerces`)
-      .get()
-      .then(snapshot => {
-        const favoriteCommerces = [];
-        snapshot.forEach(doc => favoriteCommerces.push(doc.id));
-        dispatch({
-          type: ON_COMMERCES_LIST_VALUE_CHANGE,
-          payload: { favoriteCommerces }
-        });
+  axios.get(`${backendUrl}/api/favorites/id/`, {
+    params: { clientId: currentUser.uid }
+  })
+    .then(response => {
+      dispatch({
+        type: ON_COMMERCES_LIST_VALUE_CHANGE,
+        payload: { favoriteCommerces: response.data }
       });
-  };
+    })
+    .catch(error => console.error(error));
 };
 
 export const onOnlyFavoriteCommercesRead = () => dispatch => {
   dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READING });
 
-  const db = firebase.firestore();
   const { currentUser } = firebase.auth();
 
-  return db.collection(`Profiles/${currentUser.uid}/FavoriteCommerces`).onSnapshot(snapshot => {
-    const favoriteCommerces = [];
-    const onlyFavoriteCommerces = [];
-    let processedItems = 0;
-
-    if (snapshot.empty) {
-      return dispatch({
+  axios.get(`${backendUrl}/api/favorites/`, {
+    params: { clientId: currentUser.uid }
+  })
+    .then(response => {
+      dispatch({
         type: ON_ONLY_FAVORITE_COMMERCES_READ,
-        payload: { favoriteCommerces, onlyFavoriteCommerces }
+        payload: { onlyFavoriteCommerces: response.data.map(favorite => favorite.commerce) }
       });
-    }
-
-    snapshot.forEach(doc => {
-      db.doc(`Commerces/${doc.id}`)
-        .get()
-        .then(commerce => {
-          if (commerce.data().softDelete == null) {
-            const { profilePicture, name, area, address, province, city } = commerce.data();
-
-            onlyFavoriteCommerces.push({
-              profilePicture,
-              name,
-              address,
-              city,
-              provinceName: province.name,
-              areaName: area.name,
-              objectID: commerce.id
-            });
-
-            favoriteCommerces.push(doc.id);
-          }
-
-          processedItems++;
-
-          if (processedItems === snapshot.size) {
-            dispatch({
-              type: ON_ONLY_FAVORITE_COMMERCES_READ,
-              payload: { favoriteCommerces, onlyFavoriteCommerces }
-            });
-          }
-        });
-    });
-  });
+    })
+    .catch(error => console.error(error));
 };

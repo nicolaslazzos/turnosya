@@ -28,7 +28,7 @@ export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
     case ON_COMMERCES_LIST_READING:
       return { ...state, searching: true };
-    
+
     case ON_COMMERCES_LIST_READ:
       return { ...state, commerces: action.payload, searching: false };
 
@@ -43,16 +43,14 @@ export default (state = INITIAL_STATE, action) => {
       return { ...state, ...action.payload };
 
     case ON_FAVORITE_COMMERCE_DELETED:
-      const favoritesUpdate = state.favoriteCommerces.filter(element => {
-        if (element !== action.payload) {
-          return element;
-        }
+      const favoritesUpdated = state.favoriteCommerces.filter(fav => {
+        return fav.id !== action.payload;
       });
-      return { ...state, favoriteCommerces: favoritesUpdate };
+
+      return { ...state, favoriteCommerces: favoritesUpdated };
 
     case ON_FAVORITE_COMMERCE_ADDED:
-      const favorites = state.favoriteCommerces.concat(action.payload);
-      return { ...state, favoriteCommerces: favorites };
+      return { ...state, favoriteCommerces: [...state.favoriteCommerces, action.payload] };
 
     case ON_ONLY_FAVORITE_COMMERCES_READ:
     case ON_AREAS_SEARCH_READ:

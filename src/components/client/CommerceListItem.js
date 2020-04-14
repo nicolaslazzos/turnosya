@@ -11,22 +11,29 @@ class CommerceListItem extends Component {
 
   componentDidMount() {
     this.setState({
-      favorite: this.props.favoriteCommerces.includes(this.props.commerce.commerceId)
+      favorite: !!this.getFavorite(this.props.commerce.commerceId)
     });
   }
 
   componentDidUpdate(prevProps) {
     if (prevProps.favoriteCommerces !== this.props.favoriteCommerces) {
       this.setState({
-        favorite: this.props.favoriteCommerces.includes(this.props.commerce.commerceId)
+        favorite: !!this.getFavorite(this.props.commerce.commerceId)
       });
     }
   }
 
+  getFavorite = commerceId => {
+    return this.props.favoriteCommerces.find(fav => fav.commerceId === commerceId);
+  }
+
   onFavoritePress = commerceId => {
-    this.state.favorite
-      ? this.props.onFavoriteCommerceDelete(commerceId)
-      : this.props.onFavoriteCommerceRegister(commerceId);
+    if (this.state.favorite) {
+      const favorite = this.getFavorite(commerceId);
+      this.props.onFavoriteCommerceDelete(favorite.id)
+    } else {
+      this.props.onFavoriteCommerceRegister(commerceId);
+    }
 
     this.setState({ favorite: !this.state.favorite });
   };

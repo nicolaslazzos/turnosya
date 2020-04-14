@@ -3,21 +3,17 @@ import { FlatList, RefreshControl } from 'react-native';
 import { connect } from 'react-redux';
 import { Spinner, EmptyList } from '../common';
 import CommerceListItem from './CommerceListItem';
-import { onOnlyFavoriteCommercesRead } from '../../actions';
+import { onOnlyFavoriteCommercesRead, onFavoriteCommercesRead } from '../../actions';
 import { MAIN_COLOR } from '../../constants';
 
 class FavoriteCommercesList extends Component {
   componentDidMount() {
     this.onFavoriteCommercesRead();
   }
-
-  componentWillUnmount() {
-    this.unsubscribeFavoritesRead && this.unsubscribeFavoritesRead();
-  }
-
+  
   onFavoriteCommercesRead = () => {
-    this.unsubscribeFavoritesRead && this.unsubscribeFavoritesRead();
-    this.unsubscribeFavoritesRead = this.props.onOnlyFavoriteCommercesRead();
+    this.props.onFavoriteCommercesRead();
+    this.props.onOnlyFavoriteCommercesRead();
   };
 
   renderRow({ item }) {
@@ -45,7 +41,7 @@ class FavoriteCommercesList extends Component {
         <FlatList
           data={onlyFavoriteCommerces}
           renderItem={this.renderRow.bind(this)}
-          keyExtractor={commerce => commerce.objectID}
+          keyExtractor={commerce => commerce.commerceId.toString()}
           refreshControl={this.onRefresh()}
         />
       );
@@ -61,5 +57,5 @@ const mapStateToProps = state => {
 };
 
 export default connect(mapStateToProps, {
-  onOnlyFavoriteCommercesRead
+  onOnlyFavoriteCommercesRead, onFavoriteCommercesRead
 })(FavoriteCommercesList);

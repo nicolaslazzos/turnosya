@@ -47,7 +47,7 @@ class CommerceProfileView extends Component {
   }
 
   setCommercePropsByID = commerceId => {
-    this.setState({ favorite: this.props.favoriteCommerces.includes(commerceId) });
+    this.setState({ favorite: this.props.favoriteCommerces.some(fav => fav.commerceId === commerceId) });
     this.props.onCommerceRead(commerceId);
     this.props.onCommerceCourtTypesRead(commerceId);
     this.props.onEmailVerifyReminded();
@@ -154,8 +154,8 @@ class CommerceProfileView extends Component {
                 this.state.favorite ? (
                   <Icon name="favorite" color={'red'} size={30} />
                 ) : (
-                  <Icon name="favorite-border" color={'white'} size={30} />
-                )
+                    <Icon name="favorite-border" color={'white'} size={30} />
+                  )
               }
               onPress={() => this.onFavoritePress(commerceId)}
             />
