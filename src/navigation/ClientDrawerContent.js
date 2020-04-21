@@ -17,7 +17,7 @@ class ClientDrawerContent extends Component {
 
   onMyCommercePress = async () => {
     try {
-      if (await isEmailVerified()) {
+      if (true || await isEmailVerified()) {
         this.props.commerceId
           ? this.onCommercePress(this.props.commerceId)
           : this.props.navigation.navigate('commerceRegister');

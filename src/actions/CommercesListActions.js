@@ -26,9 +26,11 @@ export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch =>
   dispatch({ type: ON_COMMERCES_LIST_READING });
 
   axios.get(`${backendUrl}/api/commerces/`, {
-    areaId: areaId || '',
-    provinceId: provinceId || '',
-    contains: contains || ''
+    params: {
+      areaId: areaId || '',
+      provinceId: provinceId || '',
+      contains: contains || ''
+    }
   })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_READ, payload: response.data }))
     .catch(error => {
