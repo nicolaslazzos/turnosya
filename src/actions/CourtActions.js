@@ -1,6 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import moment from 'moment';
+import axios from 'axios';
 import { onReservationsCancel } from './ReservationsListActions';
 import { onClientNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
@@ -19,6 +20,9 @@ import {
   COMMERCE_COURT_TYPES_READ_FAIL
 } from './types';
 
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
+
 export const onCourtValueChange = payload => {
   return { type: ON_COURT_VALUE_CHANGE, payload };
 };
@@ -27,74 +31,37 @@ export const onCourtFormOpen = () => {
   return { type: ON_COURT_FORM_OPEN };
 };
 
-export const onCourtAndGroundTypesRead = () => {
-  return dispatch => {
-    firebase
-      .firestore()
-      .collection('CourtType')
-      .get()
-      .then(querySnapshot => {
-        const courts = [];
-        const grounds = [];
-        let i = 0;
-        querySnapshot.forEach(doc => {
-          courts.push({ value: doc.id, label: doc.id, key: i });
-
-          const ground = [];
-          doc.data().groundType.forEach((value, j) => {
-            ground.push({ value, label: value, key: j });
-          });
-
-          grounds.push(ground);
-
-          i++;
-        });
-
-        dispatch({ type: ON_COURT_VALUE_CHANGE, payload: { courts, grounds } });
-      });
-  };
+export const onCourtAndGroundTypesRead = () => async dispatch => {
+  try {
+    const courtTypes = await axios.get(`${backendUrl}/api/court-types/id/`);
+    const groundTypes = await axios.get(`${backendUrl}/api/ground-types/id/`);
+    dispatch({ type: ON_COURT_VALUE_CHANGE, payload: { courts: courtTypes.data, grounds: groundTypes.data } });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
-export const onCourtCreate = (
-  { name, description, court, ground, price, lightPrice, lightHour, disabledFrom, disabledTo, commerceId },
-  navigation
-) => {
-  const db = firebase.firestore();
+export const onCourtCreate = ({ name, description, courtTypeId, groundTypeId, price, lightPrice, lightHour, disabledFrom, disabledTo, commerceId }, navigation) => dispatch => {
+  dispatch({ type: ON_COURT_FORM_SUBMIT });
 
-  return dispatch => {
-    dispatch({ type: ON_COURT_FORM_SUBMIT });
-    db.collection(`Commerces/${commerceId}/Courts`)
-      .where('name', '==', name)
-      .where('softDelete', '==', null)
-      .get()
-      .then(function (querySnapshot) {
-        if (!querySnapshot.empty) {
-          dispatch({ type: ON_COURT_EXISTS });
-        } else {
-          db.collection(`Commerces/${commerceId}/Courts`)
-            .add({
-              name,
-              description,
-              court,
-              ground,
-              price,
-              lightPrice,
-              lightHour,
-              disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
-              disabledTo: disabledTo ? disabledTo.toDate() : null,
-              softDelete: null,
-
-              // este campo lo dejo por ahora para que las consultas que tienen indexado este campo sigan funcionando
-              // pero no se usa más, una vez que todos estemos en la nueva versión hay que borrarlo
-              courtState: true
-            })
-            .then(() => {
-              dispatch({ type: ON_COURT_CREATE });
-              navigation.goBack();
-            });
-        }
-      });
-  };
+  axios.post(`${backendUrl}/api/courts/create/`, {
+    commerceId,
+    name,
+    description,
+    courtTypeId,
+    groundTypeId,
+    price,
+    lightPrice,
+    lightHour,
+    disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
+    disabledTo: disabledTo ? disabledTo.toDate() : null
+  })
+    .then(() => {
+      // dispatch({ type: ON_COURT_EXISTS });
+      dispatch({ type: ON_COURT_CREATE });
+      navigation.goBack();
+    })
+    .catch(error => console.error(error));
 };
 
 export const isCourtDisabledOnSlot = (court, slot) => {
@@ -125,38 +92,22 @@ const formatCourt = doc => {
 export const onCourtsRead = commerceId => dispatch => {
   dispatch({ type: ON_COURT_READING });
 
-  const db = firebase.firestore();
-
-  return (
-    db
-      .collection(`Commerces/${commerceId}/Courts`)
-      .where('softDelete', '==', null)
-      .orderBy('court', 'asc')
-      .orderBy('name', 'asc')
-      .onSnapshot(snapshot => {
-        const courts = [];
-        snapshot.forEach(doc => courts.push(formatCourt(doc)));
-        dispatch({ type: ON_COURT_READ, payload: courts });
-      })
-  );
+  axios.get(`${backendUrl}/api/courts/${prop}`, { params: { commerceId } })
+    .then(response => dispatch({ type: ON_COURT_READ, payload: response.data })) // formatCourt(doc))
+    .catch(error => console.error(error));
 };
 
 export const onCourtDelete = ({ id, commerceId, reservationsToCancel }) => async dispatch => {
-  const db = firebase.firestore();
-  const batch = db.batch();
-
   try {
-    batch.update(db.doc(`Commerces/${commerceId}/Courts/${id}`), { softDelete: new Date() });
+    axios.patch(`${backendUrl}/api/courts/update/${id}/`, { softDelete: new Date() });
 
     // reservations cancel
-    await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-    await batch.commit();
-
-    reservationsToCancel.forEach(res => {
-      if (res.clientId)
-        onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-    });
+    // reservationsToCancel.forEach(res => {
+    //   if (res.clientId)
+    //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
+    // });
 
     dispatch({ type: ON_COURT_DELETE });
   } catch (error) {
@@ -171,36 +122,25 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
     id,
     name,
     description,
-    court,
-    ground,
+    courtTypeId,
+    groundTypeId,
     price,
     lightPrice,
     lightHour,
-    commerceId,
     disabledFrom,
     disabledTo,
+    commerceId,
     reservationsToCancel
   } = courtData;
 
-  const db = firebase.firestore();
-  const batch = db.batch();
-  const courtsRef = db.collection(`Commerces/${commerceId}/Courts`);
-
   try {
-    const snapshot = await courtsRef
-      .where('name', '==', name)
-      .where('softDelete', '==', null)
-      .get();
+    // dispatch({ type: ON_COURT_EXISTS });
 
-    if (!snapshot.empty && snapshot.docs[0].id !== id) {
-      return dispatch({ type: ON_COURT_EXISTS });
-    }
-
-    batch.update(courtsRef.doc(id), {
+    axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
       name,
       description,
-      court,
-      ground,
+      courtTypeId,
+      groundTypeId,
       price,
       lightPrice,
       lightHour,
@@ -209,14 +149,12 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
     });
 
     // reservations cancel
-    await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-    await batch.commit();
-
-    reservationsToCancel.forEach(res => {
-      if (res.clientId)
-        onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-    });
+    // reservationsToCancel.forEach(res => {
+    //   if (res.clientId)
+    //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
+    // });
 
     dispatch({ type: ON_COURT_UPDATE });
     navigation.goBack();

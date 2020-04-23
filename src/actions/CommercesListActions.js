@@ -25,13 +25,7 @@ export const onCommercesListValueChange = payload => ({
 export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch => {
   dispatch({ type: ON_COMMERCES_LIST_READING });
 
-  axios.get(`${backendUrl}/api/commerces/`, {
-    params: {
-      areaId: areaId || '',
-      provinceId: provinceId || '',
-      contains: contains || ''
-    }
-  })
+  axios.get(`${backendUrl}/api/commerces/`, { params: { areaId: areaId || '', provinceId: provinceId || '', contains: contains || '' } })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_READ, payload: response.data }))
     .catch(error => {
       console.error(error);
@@ -57,10 +51,7 @@ export const onFavoriteCommerceRegister = commerceId => dispatch => {
   const { currentUser } = firebase.auth();
 
   axios.post(`${backendUrl}/api/favorites/create/`, { commerceId, clientId: currentUser.uid })
-    .then(response => {
-      dispatch({ type: ON_FAVORITE_COMMERCE_ADDED, payload: response.data });
-      console.log(response);
-    })
+    .then(response => dispatch({ type: ON_FAVORITE_COMMERCE_ADDED, payload: response.data }))
     .catch(error => console.error(error));
 };
 
@@ -70,12 +61,7 @@ export const onFavoriteCommercesRead = () => dispatch => {
   axios.get(`${backendUrl}/api/favorites/id/`, {
     params: { clientId: currentUser.uid }
   })
-    .then(response => {
-      dispatch({
-        type: ON_COMMERCES_LIST_VALUE_CHANGE,
-        payload: { favoriteCommerces: response.data }
-      });
-    })
+    .then(response => dispatch({ type: ON_COMMERCES_LIST_VALUE_CHANGE, payload: { favoriteCommerces: response.data } }))
     .catch(error => console.error(error));
 };
 
@@ -84,14 +70,10 @@ export const onOnlyFavoriteCommercesRead = () => dispatch => {
 
   const { currentUser } = firebase.auth();
 
-  axios.get(`${backendUrl}/api/favorites/`, {
-    params: { clientId: currentUser.uid }
-  })
+  axios.get(`${backendUrl}/api/favorites/`, { params: { clientId: currentUser.uid } })
     .then(response => {
-      dispatch({
-        type: ON_ONLY_FAVORITE_COMMERCES_READ,
-        payload: { onlyFavoriteCommerces: response.data.map(favorite => favorite.commerce) }
-      });
+      const onlyFavoriteCommerces = response.data.map(favorite => favorite.commerce);
+      dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READ, payload: { onlyFavoriteCommerces } })
     })
     .catch(error => console.error(error));
 };

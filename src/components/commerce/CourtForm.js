@@ -27,7 +27,6 @@ class CourtForm extends PureComponent {
     lightHourError: '',
     disabledFromError: '',
     disabledToError: '',
-    selectedGrounds: [],
     lightPriceOpen: false,
     disabledPeriodModal: false,
     confirmationModal: false,
@@ -42,12 +41,6 @@ class CourtForm extends PureComponent {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.grounds !== prevProps.grounds) {
-      const firstIndex = this.props.courts.findIndex(item => item.value === this.props.court);
-
-      if (firstIndex > -1) this.setState({ selectedGrounds: this.props.grounds[firstIndex] });
-    }
-
     if (prevProps.disabledFrom !== this.props.disabledFrom || prevProps.disabledTo !== this.props.disabledTo) {
       this.renderDisabledDatesError();
     }
@@ -71,8 +64,8 @@ class CourtForm extends PureComponent {
       id,
       name,
       description,
-      court,
-      ground,
+      courtTypeId,
+      groundTypeId,
       price,
       lightPrice,
       lightHour,
@@ -89,8 +82,8 @@ class CourtForm extends PureComponent {
           id,
           name,
           description,
-          court,
-          ground,
+          courtTypeId,
+          groundTypeId,
           price,
           lightPrice,
           lightHour,
@@ -106,8 +99,8 @@ class CourtForm extends PureComponent {
         {
           name,
           description,
-          court,
-          ground,
+          courtTypeId,
+          groundTypeId,
           price,
           lightPrice,
           lightHour,
@@ -135,7 +128,7 @@ class CourtForm extends PureComponent {
   };
 
   renderCourtError = () => {
-    if (!this.props.court) {
+    if (!this.props.courtTypeId) {
       this.setState({ courtError: 'Dato requerido' });
       return false;
     } else {
@@ -145,7 +138,7 @@ class CourtForm extends PureComponent {
   };
 
   renderGroundTypeError = () => {
-    if (!this.props.ground) {
+    if (!this.props.groundTypeId) {
       this.setState({ groundTypeError: 'Dato requerido' });
       return false;
     } else {
@@ -204,24 +197,24 @@ class CourtForm extends PureComponent {
     );
   };
 
-  onCourtTypeChangeHandle = (court, key) => {
+  onCourtTypeChangeHandle = (courtTypeId, index) => {
     this.setState({ courtError: '' });
 
-    if (key > 0) {
-      if (this.props.grounds.length) this.setState({ selectedGrounds: this.props.grounds[key - 1] });
-      this.props.onCourtValueChange({ court });
+    if (index) {
+      this.props.onCourtValueChange({ courtTypeId });
     } else {
-      this.setState({ selectedGrounds: [] });
-      this.props.onCourtValueChange({ court: '' });
+      this.props.onCourtValueChange({ courtTypeId: '' });
     }
   };
 
-  onGroundTypeChangeHandle = (ground, key) => {
-    const { grounds, onCourtValueChange } = this.props;
-
+  onGroundTypeChangeHandle = (groundTypeId, index) => {
     this.setState({ groundTypeError: '' });
 
-    grounds !== null && key > 0 ? onCourtValueChange({ ground }) : onCourtValueChange({ ground: '' });
+    if (index && this.props.grounds.length) {
+      this.props.onCourtValueChange({ groundTypeId });
+    } else {
+      this.props.onCourtValueChange({ groundTypeId: '' });
+    }
   };
 
   onCheckBoxPress = () => {
@@ -488,7 +481,7 @@ class CourtForm extends PureComponent {
             <Picker
               title={'Tipo de cancha:'}
               placeholder={{ value: null, label: 'Seleccionar...' }}
-              value={this.props.court}
+              value={this.props.courtTypeId}
               items={this.props.courts}
               onValueChange={this.onCourtTypeChangeHandle}
               errorMessage={this.state.courtError}
@@ -499,10 +492,10 @@ class CourtForm extends PureComponent {
             <Picker
               title={'Tipo de suelo:'}
               placeholder={{ value: null, label: 'Seleccionar...' }}
-              value={this.props.ground}
-              items={this.state.selectedGrounds}
+              value={this.props.groundTypeId}
+              items={this.props.grounds}
               onValueChange={this.onGroundTypeChangeHandle}
-              disabled={this.state.selectedGrounds.length === 0}
+              disabled={!this.props.grounds.length}
               errorMessage={this.state.groundTypeError}
             />
           </CardSection>
@@ -605,9 +598,9 @@ const mapStateToProps = state => {
     name,
     description,
     courts,
-    court,
+    courtTypeId,
     grounds,
-    ground,
+    groundTypeId,
     price,
     lightPrice,
     lightHour,
@@ -626,9 +619,9 @@ const mapStateToProps = state => {
     name,
     description,
     courts,
-    court,
+    courtTypeId,
     grounds,
-    ground,
+    groundTypeId,
     price,
     lightPrice,
     lightHour,
