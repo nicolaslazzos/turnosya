@@ -24,7 +24,7 @@ class ClientCourtsSchedule extends Component {
 
     this.unsubscribeCourtsRead = this.props.onCommerceCourtsReadByType({
       commerceId: this.props.commerce.objectID,
-      courtType: this.props.courtType
+      courtTypeId: this.props.courtType
     });
   }
 

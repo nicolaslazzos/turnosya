@@ -50,8 +50,8 @@ export const onCourtCreate = ({ name, description, courtTypeId, groundTypeId, pr
     description,
     courtTypeId,
     groundTypeId,
-    price,
-    lightPrice,
+    price: parseFloat(price),
+    lightPrice: parseFloat(lightPrice),
     lightHour,
     disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
     disabledTo: disabledTo ? disabledTo.toDate() : null
@@ -80,20 +80,19 @@ export const isCourtDisabledOnSlot = (court, slot) => {
   return false;
 };
 
-const formatCourt = doc => {
+const formatCourt = court => {
   return {
-    ...doc.data(),
-    id: doc.id,
-    disabledFrom: doc.data().disabledFrom ? moment(doc.data().disabledFrom.toDate()) : null,
-    disabledTo: doc.data().disabledTo ? moment(doc.data().disabledTo.toDate()) : null
+    ...court,
+    disabledFrom: court.disabledFrom ? moment(court.disabledFrom) : null,
+    disabledTo: court.disabledTo ? moment(court.disabledTo) : null
   };
 };
 
-export const onCourtsRead = commerceId => dispatch => {
+export const onCourtsRead = ({ commerceId, courtTypeId }) => dispatch => {
   dispatch({ type: ON_COURT_READING });
 
-  axios.get(`${backendUrl}/api/courts/${prop}`, { params: { commerceId } })
-    .then(response => dispatch({ type: ON_COURT_READ, payload: response.data })) // formatCourt(doc))
+  axios.get(`${backendUrl}/api/courts/`, { params: { commerceId, courtTypeId: courtTypeId || '' } })
+    .then(response => dispatch({ type: ON_COURT_READ, payload: response.data.map(formatCourt) }))
     .catch(error => console.error(error));
 };
 
@@ -129,7 +128,6 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
     lightHour,
     disabledFrom,
     disabledTo,
-    commerceId,
     reservationsToCancel
   } = courtData;
 
@@ -141,8 +139,8 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       description,
       courtTypeId,
       groundTypeId,
-      price,
-      lightPrice,
+      price: parseFloat(price),
+      lightPrice: parseFloat(lightPrice),
       lightHour,
       disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
       disabledTo: disabledTo ? disabledTo.toDate() : null
@@ -201,23 +199,4 @@ export const onCommerceCourtTypesRead = (commerceId, loadingType = 'loading') =>
       })
       .catch(error => dispatch({ type: COMMERCE_COURT_TYPES_READ_FAIL }));
   };
-};
-
-export const onCommerceCourtsReadByType = ({ commerceId, courtType }) => dispatch => {
-  dispatch({ type: ON_COURT_READING, payload: 'loading' });
-
-  const db = firebase.firestore();
-
-  return (
-    db
-      .collection(`Commerces/${commerceId}/Courts`)
-      .where('softDelete', '==', null)
-      .where('court', '==', courtType)
-      .orderBy('name', 'asc')
-      .onSnapshot(snapshot => {
-        const courts = [];
-        snapshot.forEach(doc => courts.push(formatCourt(doc)));
-        dispatch({ type: ON_COURT_READ, payload: courts });
-      })
-  );
 };

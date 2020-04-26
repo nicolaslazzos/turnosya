@@ -87,7 +87,6 @@ class CourtForm extends PureComponent {
           price,
           lightPrice,
           lightHour,
-          commerceId,
           disabledFrom,
           disabledTo,
           reservationsToCancel
@@ -239,7 +238,7 @@ class CourtForm extends PureComponent {
               label="Precio por turno (con luz):"
               placeholder="Precio de la cancha"
               keyboardType="numeric"
-              value={this.props.lightPrice}
+              value={this.props.lightPrice && this.props.lightPrice.toString()}
               errorMessage={this.state.lightPriceError}
               onChangeText={lightPrice => this.props.onCourtValueChange({ lightPrice: lightPrice.trim() })}
               onFocus={() => this.setState({ lightPriceError: '' })}
@@ -356,7 +355,7 @@ class CourtForm extends PureComponent {
     this.setState({ reservationsToCancel: [] });
 
     if (this.validateMinimumData()) {
-      if (this.props.disabled && this.props.id) {
+      if (false && this.props.disabled && this.props.id) {
         this.props.onNextReservationsRead({
           commerceId: this.props.commerceId,
           courtId: this.props.id,
@@ -505,7 +504,7 @@ class CourtForm extends PureComponent {
               label="Precio por turno (sin luz):"
               placeholder="Precio de la cancha"
               keyboardType="numeric"
-              value={this.props.price}
+              value={this.props.price.toString()}
               errorMessage={this.state.priceError}
               onChangeText={price => this.props.onCourtValueChange({ price: price.trim() })}
               onFocus={() => this.setState({ priceError: '' })}

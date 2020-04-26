@@ -35,7 +35,7 @@ class CommerceCourtsSchedule extends Component {
       selectedDate: this.state.selectedDate
     });
 
-    this.unsubscribeCourtsRead = this.props.onCourtsRead(this.props.commerceId);
+    this.unsubscribeCourtsRead = this.props.onCourtsRead({ commerceId: this.props.commerceId });
 
     this.props.navigation.setParams({ onConfigurationPress: this.onConfigurationPress });
   }

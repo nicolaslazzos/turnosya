@@ -67,7 +67,7 @@ class CourtList extends Component {
         <FlatList
           data={this.courtsFilter()}
           renderItem={this.renderRow.bind(this)}
-          keyExtractor={court => court.id}
+          keyExtractor={court => court.id.toString()}
           contentContainerStyle={{ paddingBottom: 95 }}
         />
       );

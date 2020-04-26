@@ -114,7 +114,7 @@ class CourtListItem extends Component {
   }
 
   render() {
-    const { name, court, ground, price, lightPrice, id } = this.props.court;
+    const { name, courtType, groundType, price, lightPrice, id } = this.props.court;
 
     return (
       <View style={{ flex: 1 }}>
@@ -163,7 +163,7 @@ class CourtListItem extends Component {
           key={id}
           subtitle={
             <View style={{ alignItems: 'flex-start' }}>
-              <Text style={{ color: 'grey' }}>{`${court} - ${ground}`}</Text>
+              <Text style={{ color: 'grey' }}>{`${courtType.name} - ${groundType.name}`}</Text>
               {this.props.court.lightHour ?
                 <Text style={{ color: 'grey' }}>{`Prenden Luces: ${this.props.court.lightHour} hs.`}</Text> : null}
               {this.props.court.disabled ? <Badge value='Deshabilitada' color='grey' /> : null}
