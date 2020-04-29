@@ -161,42 +161,13 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
   }
 };
 
-export const onCommerceCourtTypesRead = (commerceId, loadingType = 'loading') => {
-  const db = firebase.firestore();
+export const onCommerceCourtTypesRead = (commerceId, loadingType = 'loading') => dispatch => {
+  dispatch({ type: COMMERCE_COURT_TYPES_READING, payload: loadingType });
 
-  return dispatch => {
-    dispatch({ type: COMMERCE_COURT_TYPES_READING, payload: loadingType });
-
-    db.collection(`Commerces/${commerceId}/Courts`)
-      .where('softDelete', '==', null)
-      .get()
-      .then(snapshot => {
-        const courtTypes = [];
-
-        snapshot.forEach(doc => {
-          if (!courtTypes.includes(doc.data().court)) {
-            courtTypes.push(doc.data().court);
-          }
-        });
-
-        db.collection('CourtType')
-          .get()
-          .then(snapshot => {
-            const courtTypesList = [];
-
-            snapshot.forEach(doc => {
-              if (courtTypes.includes(doc.id)) {
-                courtTypesList.push({ name: doc.id, image: doc.data().image });
-              }
-            });
-
-            dispatch({
-              type: COMMERCE_COURT_TYPES_READ,
-              payload: courtTypesList
-            });
-          })
-          .catch(error => dispatch({ type: COMMERCE_COURT_TYPES_READ_FAIL }));
-      })
-      .catch(error => dispatch({ type: COMMERCE_COURT_TYPES_READ_FAIL }));
-  };
+  axios.get(`${backendUrl}/api/court-types/`, { params: { commerceId } })
+    .then(response => dispatch({ type: COMMERCE_COURT_TYPES_READ, payload: response.data }))
+    .catch(error => {
+      console.error(error);
+      dispatch({ type: COMMERCE_COURT_TYPES_READ_FAIL })
+    });
 };

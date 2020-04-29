@@ -19,7 +19,7 @@ class CourtTypesFilter extends Component {
     const buttons = ['Todas'];
 
     for (const court of this.props.courts) {
-      const courtType = court.court;
+      const courtType = court.courtType.name;
 
       if (!buttons.includes(courtType)) {
         buttons.push(courtType);
