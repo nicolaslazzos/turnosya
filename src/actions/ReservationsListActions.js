@@ -291,7 +291,10 @@ export const onNextReservationsRead = ({ commerceId, startDate, endDate, employe
         payload: { nextReservations }
       });
     })
-    .catch(error => dispatch({ type: ON_COMMERCE_RESERVATIONS_READ_FAIL, payload: error }));
+    .catch(error => {
+      console.error(error);
+      dispatch({ type: ON_COMMERCE_RESERVATIONS_READ_FAIL, payload: error })
+    });
 };
 
 export const onReservationsCancel = async (db, batch, commerceId, reservations) => {

@@ -57,22 +57,24 @@ const formatSchedule = schedule => {
 };
 
 const schedulesRead = async ({ commerceId, selectedDate, date, employeeId }) => {
+  const schedules = [];
+
   try {
-    let schedules = await axios.get(`${backendUrl}/api/schedules/`, {
+    const response = await axios.get(`${backendUrl}/api/schedules/`, {
       params: {
         commerceId,
-        selectedDate: selectedDate || '',
-        date: date || '',
-        employeeId: employeeId || ''
+        selectedDate: selectedDate ? selectedDate.toDate() : null,
+        date: date ? date.toDate() : null,
+        employeeId
       }
     });
 
-    schedules = schedules.data.map(async schedule => {
+    for (const schedule of response.data) {
       let selectedDays = [];
       const cards = await axios.get(`${backendUrl}/api/schedules/workshifts/`, { params: { scheduleId: schedule.id } });
       cards.data.forEach(card => { selectedDays = [...selectedDays, ...card.days] });
-      return { ...formatSchedule(schedule), cards: cards.data, selectedDays };
-    })
+      schedules.push({ ...formatSchedule(schedule), cards: cards.data, selectedDays });
+    }
 
     return schedules;
   } catch (error) {
@@ -96,11 +98,11 @@ export const onScheduleRead = ({ commerceId, selectedDate, employeeId }) => asyn
   }
 };
 
-export const onCommerceSchedulesRead = ({ commerceId, selectedDate, date, areaId }) => async dispatch => {
+export const onCommerceSchedulesRead = ({ commerceId, selectedDate, date, employeeId }) => async dispatch => {
   dispatch({ type: ON_ACTIVE_SCHEDULES_READING });
 
   try {
-    const schedules = await schedulesRead({ commerceId, selectedDate, date });
+    const schedules = await schedulesRead({ commerceId, selectedDate, date, employeeId });
 
     // schedules.push({
     //   ...schedule,
@@ -111,10 +113,6 @@ export const onCommerceSchedulesRead = ({ commerceId, selectedDate, date, areaId
   } catch (error) {
     dispatch({ type: ON_ACTIVE_SCHEDULES_READ_FAIL });
   }
-};
-
-export const onActiveSchedulesRead = ({ commerceId, date, employeeId }) => {
-  onCommerceSchedulesRead({ commerceId, date, employeeId });
 };
 
 export const onScheduleUpdate = scheduleData => async dispatch => {
@@ -134,90 +132,70 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
     employeeId,
   } = scheduleData;
 
-  const db = firebase.firestore();
-  const batch = db.batch();
-  const schedulesRef = db.collection(`Commerces/${commerceId}/Schedules`);
+  const requests = [];
 
   schedules.forEach(schedule => {
     if (schedule.startDate < startDate && (!schedule.endDate || startDate < schedule.endDate)) {
       // si se superpone con un schedule que inicia antes, este último termina donde inicia el nuevo
-      batch.update(schedulesRef.doc(schedule.id), {
-        endDate: startDate.toDate(),
-      });
+      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: startDate.utc().toDate() }));
     }
 
     if (schedule.startDate >= startDate && (!endDate || (schedule.endDate && schedule.endDate <= endDate))) {
-      if (schedule.id === scheduleId) {
-        // el schedule que se está modificando se elimina porque después se crea de nuevo
-        batch.delete(schedulesRef.doc(schedule.id));
-        // al eliminarlo hace falta también eliminar las subcolecciones
-        schedule.cards.forEach(card => {
-          const cardRef = schedulesRef.doc(`${schedule.id}/WorkShifts/${card.id}`);
-          batch.delete(cardRef);
-        });
-      } else {
-        // si un schedule anterior queda dentro del periodo de vigencia del nuevo,
-        // se le hace una baja lógica
-        batch.update(schedulesRef.doc(schedule.id), { softDelete: new Date() });
-      }
+      // si un schedule anterior queda dentro del periodo de vigencia del nuevo, se elimina
+      requests.push(axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`));
     }
 
-    if (
-      endDate &&
-      endDate > schedule.startDate &&
-      (!schedule.endDate || (endDate && endDate < schedule.endDate)) &&
-      schedule.startDate >= startDate
-    ) {
+    if (endDate && endDate > schedule.startDate && (!schedule.endDate || (endDate && endDate < schedule.endDate)) && schedule.startDate >= startDate) {
       // si se superpone con un schedule que esta después, este último inicia donde termina el nuevo
-      batch.update(schedulesRef.doc(schedule.id), {
-        startDate: endDate.toDate(),
-      });
+      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { startDate: endDate.utc().toDate() }));
     }
   });
 
   try {
-    let newScheduleObj = {
-      startDate: startDate.toDate(),
-      endDate: endDate ? endDate.toDate() : null,
-      softDelete: null,
+    let newScheduleObject = {
+      commerceId,
+      startDate: startDate.utc().toDate(),
+      endDate: endDate ? endDate.utc().toDate() : null,
+      // softDelete: null,
       reservationMinLength,
-      reservationDayPeriod,
-      reservationMinCancelTime,
+      // reservationDayPeriod,
+      // reservationMinCancelTime,
     };
 
-    if (employeeId) {
-      newScheduleObj = { ...newScheduleObj, employeeId };
-    }
+    // if (employeeId) {
+    //   newScheduleObject = { ...newScheduleObject, employeeId };
+    // }
 
     // new schedule creation
-    const newSchedule = await db.collection(`Commerces/${commerceId}/Schedules/`).add(newScheduleObj);
+    const newSchedule = await axios.post(`${backendUrl}/api/schedules/create/`, newScheduleObject);
 
     cards.forEach(card => {
       const { days, firstShiftStart, firstShiftEnd, secondShiftStart, secondShiftEnd } = card;
 
-      const cardRef = schedulesRef.doc(`${newSchedule.id}/WorkShifts/${card.id}`);
-      batch.set(cardRef, {
+      requests.push(axios.post(`${backendUrl}/api/schedules/workshifts/create/`, {
+        scheduleId: newSchedule.data.id,
         days,
         firstShiftStart,
         firstShiftEnd,
         secondShiftStart,
-        secondShiftEnd,
-      });
+        secondShiftEnd
+      }));
     });
+
+    await axios.all(requests);
 
     // reservations cancel
-    await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-    await batch.commit();
-
-    reservationsToCancel.forEach(res => {
-      if (res.clientId)
-        onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-    });
+    // reservationsToCancel.forEach(res => {
+    //   if (res.clientId)
+    //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
+    // });
 
     dispatch({ type: ON_SCHEDULE_CREATED });
     return true;
   } catch (error) {
+    console.error(error);
     dispatch({ type: ON_SCHEDULE_CREATE_FAIL });
     return false;
   }

@@ -13,7 +13,7 @@ import {
   onScheduleValueChange,
   onScheduleUpdate,
   onNextReservationsRead,
-  onActiveSchedulesRead,
+  onCommerceSchedulesRead,
   onScheduleRead
 } from '../../actions';
 
@@ -411,7 +411,7 @@ class ScheduleRegister extends Component {
 
       if (success) {
         // si se guardo con éxito, se recarga el listado de schedules y se vuelve
-        this.props.onActiveSchedulesRead({
+        this.props.onCommerceSchedulesRead({
           commerceId,
           date: moment(),
           employeeId
@@ -746,6 +746,6 @@ export default connect(mapStateToProps, {
   onScheduleValueChange,
   onScheduleUpdate,
   onNextReservationsRead,
-  onActiveSchedulesRead,
+  onCommerceSchedulesRead,
   onScheduleRead
 })(ScheduleRegister);

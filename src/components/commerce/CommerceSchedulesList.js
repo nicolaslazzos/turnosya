@@ -9,7 +9,7 @@ import { Spinner, EmptyList, Menu, MenuItem } from '../common';
 import { DAYS, MONTHS, MAIN_COLOR, AREAS } from '../../constants';
 import { formattedMoment, stringFormatMinutes, cancelReservationNotificationFormat } from '../../utils';
 import {
-  onActiveSchedulesRead,
+  onCommerceSchedulesRead,
   onScheduleValueChange,
   onScheduleDelete,
   onNextReservationsRead,
@@ -28,7 +28,7 @@ class CommerceSchedulesList extends Component {
   };
 
   componentDidMount() {
-    this.props.onActiveSchedulesRead({
+    this.props.onCommerceSchedulesRead({
       commerceId: this.props.commerceId,
       date: moment(),
       employeeId: this.props.employeeId
@@ -133,7 +133,7 @@ class CommerceSchedulesList extends Component {
     });
 
     if (success) {
-      this.props.onActiveSchedulesRead({
+      this.props.onCommerceSchedulesRead({
         commerceId: this.props.commerceId,
         date: moment(),
         employeeId: this.props.employeeId
@@ -208,7 +208,7 @@ class CommerceSchedulesList extends Component {
       `${secondShiftStart ? ` / ${secondShiftStart} a ${secondShiftEnd}` : ''}`;
 
     return (
-      <Text key={id} style={{ fontSize: 13, marginBottom: 3 }}>
+      <Text key={id.toString()} style={{ fontSize: 13, marginBottom: 3 }}>
         {`${strDays}\n${strShifts}`}
       </Text>
     );
@@ -258,7 +258,7 @@ class CommerceSchedulesList extends Component {
         <FlatList
           data={schedules}
           renderItem={this.renderItem}
-          keyExtractor={schedule => schedule.id}
+          keyExtractor={schedule => schedule.id.toString()}
           contentContainerStyle={{ paddingBottom: 95 }}
         />
       );
@@ -320,7 +320,7 @@ const mapStateToProps = state => {
 };
 
 export default connect(mapStateToProps, {
-  onActiveSchedulesRead,
+  onCommerceSchedulesRead,
   onScheduleValueChange,
   onScheduleDelete,
   onNextReservationsRead,
