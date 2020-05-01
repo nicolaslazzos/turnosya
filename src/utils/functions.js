@@ -18,6 +18,8 @@ export const areaFunctionReturn = ({ area, sports, hairdressers }) => {
   }
 };
 
+export const localDate = (date = new Date()) => moment(date).format('YYYY-MM-DD HH:mm:ss');
+
 export const formattedMoment = (date = moment()) => {
   // receives moment date and returns the same date at 00:00 in moment format
   // if not receive a date as param, returns the current date

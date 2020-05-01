@@ -7,6 +7,7 @@ import { ROLES } from '../constants';
 import { onClientNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { onReservationsCancel } from './ReservationsListActions';
+import { localDate } from '../utils';
 import {
   ON_REGISTER_COMMERCE,
   ON_COMMERCE_PROFILE_CREATE,
@@ -84,49 +85,35 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
   const { name, cuit, email, phone, description, area, address, city, province, latitude, longitude } = commerceData;
 
   const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
-  const batch = db.batch();
 
   try {
-    const commerceRef = db.collection(`Commerces`).doc();
-
-    batch.set(commerceRef, {
+    const commerce = await axios.post(`${backendUrl}/api/commerces/create`, {
       name,
       cuit,
       email,
       phone,
       description,
-      area,
+      area: area.areaId,
       address,
       city,
-      province,
+      province: province.provinceId,
       latitude,
-      longitude,
-      softDelete: null,
-      creationDate: new Date()
+      longitude
     });
 
-    const commerceId = commerceRef.id;
-    const profileRef = db.doc(`Profiles/${currentUser.uid}`);
-    const employeesRef = db.collection(`Commerces/${commerceId}/Employees`).doc();
+    await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, { commerceId: commerce.data.id });
 
-    batch.update(profileRef, { commerceId });
-
-    const profile = await profileRef.get();
-
-    batch.set(employeesRef, {
-      profileId: profile.id,
-      email: profile.data().email,
-      firstName: profile.data().firstName,
-      lastName: profile.data().lastName,
-      phone: profile.data().phone,
-      softDelete: null,
-      role: { name: ROLES.OWNER.name, roleId: ROLES.OWNER.roleId },
-      inviteDate: new Date(),
-      startDate: new Date()
-    });
-
-    await batch.commit();
+    // batch.set(employeesRef, {
+    //   profileId: profile.id,
+    //   email: profile.data().email,
+    //   firstName: profile.data().firstName,
+    //   lastName: profile.data().lastName,
+    //   phone: profile.data().phone,
+    //   softDelete: null,
+    //   role: { name: ROLES.OWNER.name, roleId: ROLES.OWNER.roleId },
+    //   inviteDate: new Date(),
+    //   startDate: new Date()
+    // });
 
     dispatch({ type: ON_COMMERCE_VALUE_CHANGE, payload: { commerceId } });
 

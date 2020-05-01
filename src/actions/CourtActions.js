@@ -5,6 +5,7 @@ import axios from 'axios';
 import { onReservationsCancel } from './ReservationsListActions';
 import { onClientNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
+import { localDate } from '../utils';
 import {
   ON_COURT_VALUE_CHANGE,
   ON_COURT_FORM_OPEN,
@@ -53,8 +54,8 @@ export const onCourtCreate = ({ name, description, courtTypeId, groundTypeId, pr
     price: parseFloat(price),
     lightPrice: parseFloat(lightPrice),
     lightHour,
-    disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
-    disabledTo: disabledTo ? disabledTo.toDate() : null
+    disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
+    disabledTo: disabledTo ? localDate(disabledTo) : null
   })
     .then(() => {
       // dispatch({ type: ON_COURT_EXISTS });
@@ -98,7 +99,7 @@ export const onCourtsRead = ({ commerceId, courtTypeId }) => dispatch => {
 
 export const onCourtDelete = ({ id, commerceId, reservationsToCancel }) => async dispatch => {
   try {
-    axios.patch(`${backendUrl}/api/courts/update/${id}/`, { softDelete: new Date() });
+    axios.patch(`${backendUrl}/api/courts/update/${id}/`, { softDelete: localDate() });
 
     // reservations cancel
     // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
@@ -142,8 +143,8 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       price: parseFloat(price),
       lightPrice: parseFloat(lightPrice),
       lightHour,
-      disabledFrom: disabledFrom ? disabledFrom.toDate() : null,
-      disabledTo: disabledTo ? disabledTo.toDate() : null
+      disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
+      disabledTo: disabledTo ? localDate(disabledTo) : null
     });
 
     // reservations cancel

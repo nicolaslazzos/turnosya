@@ -2,6 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
 import { userReauthenticate } from './AuthActions';
+import { localDate } from '../utils';
 import {
   ON_CLIENT_DATA_VALUE_CHANGE,
   ON_USER_REGISTER,
@@ -44,7 +45,7 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
       .createUserWithEmailAndPassword(email, password)
       .then(user => {
         axios.post(`${backendUrl}/api/profiles/create/`, {
-          clientId: user.user.uid,
+          profileId: user.user.uid,
           firstName,
           lastName,
           email,
@@ -62,11 +63,11 @@ export const onUserRegister = ({ email, password, firstName, lastName, phone, pr
   };
 };
 
-export const onUserRead = (clientId = firebase.auth().currentUser.uid) => async dispatch => {
+export const onUserRead = (profileId = firebase.auth().currentUser.uid) => async dispatch => {
   dispatch({ type: ON_USER_READING });
 
   try {
-    const response = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
+    const response = await axios.get(`${backendUrl}/api/profiles/${profileId}/`);
     dispatch({
       type: ON_USER_READ,
       payload: response.data
@@ -126,7 +127,7 @@ export const onUserDelete = password => {
 
         try {
           await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, {
-            softDelete: new Date()
+            softDelete: localDate()
           });
 
           // const workplaces = await db

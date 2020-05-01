@@ -50,7 +50,7 @@ export const onFavoriteCommerceDelete = favoriteId => dispatch => {
 export const onFavoriteCommerceRegister = commerceId => dispatch => {
   const { currentUser } = firebase.auth();
 
-  axios.post(`${backendUrl}/api/favorites/create/`, { commerceId, clientId: currentUser.uid })
+  axios.post(`${backendUrl}/api/favorites/create/`, { commerceId, profileId: currentUser.uid })
     .then(response => dispatch({ type: ON_FAVORITE_COMMERCE_ADDED, payload: response.data }))
     .catch(error => console.error(error));
 };
@@ -59,7 +59,7 @@ export const onFavoriteCommercesRead = () => dispatch => {
   const { currentUser } = firebase.auth();
 
   axios.get(`${backendUrl}/api/favorites/id/`, {
-    params: { clientId: currentUser.uid }
+    params: { profileId: currentUser.uid }
   })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_VALUE_CHANGE, payload: { favoriteCommerces: response.data } }))
     .catch(error => console.error(error));
@@ -70,10 +70,7 @@ export const onOnlyFavoriteCommercesRead = () => dispatch => {
 
   const { currentUser } = firebase.auth();
 
-  axios.get(`${backendUrl}/api/favorites/`, { params: { clientId: currentUser.uid } })
-    .then(response => {
-      const onlyFavoriteCommerces = response.data.map(favorite => favorite.commerce);
-      dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READ, payload: { onlyFavoriteCommerces } })
-    })
+  axios.get(`${backendUrl}/api/favorites/`, { params: { profileId: currentUser.uid } })
+    .then(response => dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READ, payload: { onlyFavoriteCommerces: response.data } }))
     .catch(error => console.error(error));
 };

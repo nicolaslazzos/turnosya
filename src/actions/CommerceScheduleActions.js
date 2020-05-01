@@ -5,6 +5,7 @@ import axios from 'axios';
 import { onReservationsCancel } from './ReservationsListActions';
 import { onClientNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES, AREAS } from '../constants';
+import { localDate } from '../utils';
 import {
   ON_SCHEDULE_FORM_OPEN,
   ON_SCHEDULE_VALUE_CHANGE,
@@ -63,8 +64,8 @@ const schedulesRead = async ({ commerceId, selectedDate, date, employeeId }) => 
     const response = await axios.get(`${backendUrl}/api/schedules/`, {
       params: {
         commerceId,
-        selectedDate: selectedDate ? selectedDate.toDate() : null,
-        date: date ? date.toDate() : null,
+        selectedDate: selectedDate ? localDate(selectedDate) : null,
+        date: date ? localDate(date) : null,
         employeeId
       }
     });
@@ -137,7 +138,7 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
   schedules.forEach(schedule => {
     if (schedule.startDate < startDate && (!schedule.endDate || startDate < schedule.endDate)) {
       // si se superpone con un schedule que inicia antes, este último termina donde inicia el nuevo
-      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: startDate.utc().toDate() }));
+      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) }));
     }
 
     if (schedule.startDate >= startDate && (!endDate || (schedule.endDate && schedule.endDate <= endDate))) {
@@ -147,15 +148,15 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
 
     if (endDate && endDate > schedule.startDate && (!schedule.endDate || (endDate && endDate < schedule.endDate)) && schedule.startDate >= startDate) {
       // si se superpone con un schedule que esta después, este último inicia donde termina el nuevo
-      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { startDate: endDate.utc().toDate() }));
+      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { startDate: localDate(endDate) }));
     }
   });
 
   try {
     let newScheduleObject = {
       commerceId,
-      startDate: startDate.utc().toDate(),
-      endDate: endDate ? endDate.utc().toDate() : null,
+      startDate: localDate(startDate),
+      endDate: endDate ? localDate(endDate) : null,
       // softDelete: null,
       reservationMinLength,
       // reservationDayPeriod,
@@ -202,30 +203,25 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
 };
 
 export const onScheduleDelete = ({ commerceId, schedule, endDate, reservationsToCancel }) => async dispatch => {
-  const db = firebase.firestore();
-  const batch = db.batch();
-  const scheduleRef = db.doc(`Commerces/${commerceId}/Schedules/${schedule.id}`);
 
   try {
     if (endDate <= schedule.startDate) {
       // si se está elimiando un schedule que no estaba en vigencia todavía sin reservas o
       // cancelando las reservas si es que tenía, se le hace una baja lógica
-      batch.update(scheduleRef, { softDelete: new Date() });
+      await axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`);
     } else {
       // si se está eliminando un schedule que ya estaba en vigencia o uno que tiene reservas
       // sin cancelarlas, se le establece una fecha de fin de vigencia lo más pronto posible
-      batch.update(scheduleRef, { endDate: endDate.toDate() });
+      await axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) });
     }
 
     // reservations cancel
-    await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-    await batch.commit();
-
-    reservationsToCancel.forEach(res => {
-      if (res.clientId)
-        onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-    });
+    // reservationsToCancel.forEach(res => {
+    //   if (res.clientId)
+    //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
+    // });
 
     dispatch({ type: ON_SCHEDULE_CREATED });
     return true;
