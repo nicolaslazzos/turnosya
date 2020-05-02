@@ -1,7 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
-import getEnvVars from '../../environment';
 import { userReauthenticate } from './AuthActions';
 import { ROLES } from '../constants';
 import { onClientNotificationSend } from './NotificationActions';
@@ -41,6 +40,7 @@ import {
   ON_EMPLOYEE_SELECT
 } from './types';
 
+import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
 export const onCommerceValueChange = payload => {
@@ -50,30 +50,20 @@ export const onCommerceValueChange = payload => {
 export const onCommerceFormOpen = () => {
   return dispatch => {
     dispatch({ type: ON_COMMERCE_CREATING });
-    dispatch({
-      type: ON_LOCATION_VALUE_CHANGE,
-      payload: { address: '', city: '', provinceName: '', country: '', latitude: null, longitude: null }
-    });
+    dispatch({ type: ON_LOCATION_VALUE_CHANGE, payload: { address: '', city: '', provinceName: '', country: '', latitude: null, longitude: null } });
   };
 };
 
 export const onCommerceOpen = commerceId => dispatch => {
-  const db = firebase.firestore();
   const profileId = firebase.auth().currentUser.uid;
 
-  db.collection(`Commerces/${commerceId}/Employees`)
-    .where('softDelete', '==', null)
-    .where('profileId', '==', profileId)
-    .get()
-    .then(snapshot => {
-      if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-
-        dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: ROLES[doc.data().role.roleId], employeeId: doc.id } });
-
-        dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: doc.id } });
+  axios.get(`${backendUrl}/api/employees/`, { params: { commerceId, profileId } })
+    .then(response => {
+      if (response.data.length) {
+        const employee = response.data[0];
+        dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: employee.role, employeeId: employee.id } });
+        dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: employee.id } });
       }
-
       dispatch({ type: ON_LOCATION_VALUES_RESET });
     })
     .catch(error => console.error(error));
@@ -83,40 +73,38 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
   dispatch({ type: ON_REGISTER_COMMERCE });
 
   const { name, cuit, email, phone, description, area, address, city, province, latitude, longitude } = commerceData;
-
-  const { currentUser } = firebase.auth();
+  const profileId = firebase.auth().currentUser.uid;
 
   try {
-    const commerce = await axios.post(`${backendUrl}/api/commerces/create`, {
+    const commerce = await axios.post(`${backendUrl}/api/commerces/create/`, {
       name,
       cuit,
       email,
       phone,
       description,
-      area: area.areaId,
+      areaId: area.areaId,
       address,
       city,
-      province: province.provinceId,
+      provinceId: province.provinceId,
       latitude,
       longitude
     });
 
-    await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, { commerceId: commerce.data.id });
+    const commerceId = commerce.data.id;
 
-    // batch.set(employeesRef, {
-    //   profileId: profile.id,
-    //   email: profile.data().email,
-    //   firstName: profile.data().firstName,
-    //   lastName: profile.data().lastName,
-    //   phone: profile.data().phone,
-    //   softDelete: null,
-    //   role: { name: ROLES.OWNER.name, roleId: ROLES.OWNER.roleId },
-    //   inviteDate: new Date(),
-    //   startDate: new Date()
-    // });
+    await axios.patch(`${backendUrl}/api/profiles/update/${profileId}/`, { commerceId });
+
+    const employee = await axios.post(`${backendUrl}/api/employees/create/`, {
+      commerceId,
+      profileId,
+      roleId: ROLES.OWNER.roleId,
+      inviteDate: localDate(),
+      startDate: localDate()
+    });
 
     dispatch({ type: ON_COMMERCE_VALUE_CHANGE, payload: { commerceId } });
-
+    dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: ROLES.OWNER, employeeId: employee.id } });
+    dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: employee.id } });
     dispatch({ type: ON_COMMERCE_PROFILE_CREATE });
 
     navigation.navigate(`${area.areaId}`);
@@ -141,14 +129,7 @@ export const onCommerceRead = (commerceId, loadingType = 'loading') => async dis
     var { name, areaId } = commerce.area;
     const area = { value: areaId, label: name };
 
-    dispatch({
-      type: ON_COMMERCE_READ,
-      payload: {
-        ...commerce,
-        provincesList: [province],
-        areasList: [area]
-      }
-    });
+    dispatch({ type: ON_COMMERCE_READ, payload: { ...commerce, provincesList: [province], areasList: [area] } });
 
     return true;
   } catch (error) {
@@ -183,7 +164,6 @@ export const onCommerceUpdate = (commerceData, navigation) => async dispatch => 
     address,
     city,
     province,
-    area,
     profilePicture,
     headerPicture,
     commerceId,
@@ -201,30 +181,19 @@ export const onCommerceUpdate = (commerceData, navigation) => async dispatch => 
     if (headerPicture instanceof Blob)
       headerPictureURL = await onPictureUpdate(commerceId, headerPicture, 'HeaderPicture');
 
-    await firebase
-      .firestore()
-      .doc(`Commerces/${commerceId}`)
-      .update({
-        name,
-        description,
-        address,
-        city,
-        province,
-        area,
-        latitude,
-        longitude,
-        profilePicture: profilePictureURL ? profilePictureURL : profilePicture,
-        headerPicture: headerPictureURL ? headerPictureURL : headerPicture
-      });
-
-    dispatch({
-      type: ON_COMMERCE_UPDATED,
-      payload: {
-        profilePicture: profilePictureURL ? profilePictureURL : profilePicture,
-        headerPicture: headerPictureURL ? headerPictureURL : headerPicture
-      }
+    const response = await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, {
+      name,
+      description,
+      address,
+      city,
+      provinceId: province.provinceId,
+      latitude,
+      longitude,
+      profilePicture: profilePictureURL || profilePicture,
+      headerPicture: headerPictureURL || headerPicture
     });
 
+    dispatch({ type: ON_COMMERCE_UPDATED, payload: { profilePicture: response.data.profilePicture, headerPicture: response.data.headerPicture } });
     navigation.goBack();
   } catch (error) {
     dispatch({ type: ON_COMMERCE_UPDATE_FAIL });
@@ -237,78 +206,31 @@ export const onAreasReadForPicker = () => dispatch => {
     .catch(error => console.error(error));
 };
 
-export const onCuitValidate = cuit => {
-  const db = firebase.firestore();
-
-  return dispatch => {
-    db.collection(`Commerces/`)
-      .where('cuit', '==', cuit)
-      .where('softDelete', '==', null)
-      .get()
-      .then(querySnapshot => {
-        if (!querySnapshot.empty) {
-          dispatch({ type: ON_CUIT_EXISTS });
-        } else {
-          dispatch({ type: ON_CUIT_NOT_EXISTS });
-        }
-      });
-  };
+export const onCuitValidate = cuit => dispatch => {
+  axios.get(`${backendUrl}/api/commerces/`, { params: { cuit } })
+    .then(response => dispatch({ type: response.data.length ? ON_CUIT_EXISTS : ON_CUIT_NOT_EXISTS }));
 };
 
 export const onCommerceDelete = (password, reservationsToCancel, navigation = null) => dispatch => {
   dispatch({ type: ON_COMMERCE_DELETING });
-
-  const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
-  const batch = db.batch();
 
   userReauthenticate(password)
     .then(async () => {
       dispatch({ type: ON_REAUTH_SUCCESS });
 
       try {
-        const userRef = db.doc(`Profiles/${currentUser.uid}`);
-        const user = await userRef.get();
-
-        const commerceId = user.data().commerceId;
-        const commerceRef = db.doc(`Commerces/${commerceId}`);
-
-        batch.update(userRef, { commerceId: null });
-        batch.update(commerceRef, { softDelete: new Date() });
-
-        const employees = await db
-          .collection(`Commerces/${commerceId}/Employees`)
-          .where('softDelete', '==', null)
-          .get();
-
-        for (const employee of employees.docs) {
-          const workplaces = await db
-            .collection(`Profiles/${employee.data().profileId}/Workplaces`)
-            .where('softDelete', '==', null)
-            .where('commerceId', '==', commerceId)
-            .get();
-
-          workplaces.forEach(workplace => {
-            batch.update(workplace.ref, { softDelete: new Date() });
-          });
-        }
+        await axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`);
 
         // reservations cancel
-        await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+        // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-        await batch.commit();
-
-        reservationsToCancel.forEach(res => {
-          if (res.clientId)
-            onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-        });
+        // reservationsToCancel.forEach(res => {
+        //   if (res.clientId)
+        //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
+        // });
 
         dispatch({ type: ON_COMMERCE_DELETED });
-
-        dispatch({
-          type: ON_CLIENT_DATA_VALUE_CHANGE,
-          payload: { commerceId: null }
-        });
+        dispatch({ type: ON_CLIENT_DATA_VALUE_CHANGE, payload: { commerceId: null } });
 
         navigation && navigation.navigate('client');
       } catch (error) {
