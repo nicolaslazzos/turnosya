@@ -157,7 +157,7 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
       commerceId,
       startDate: localDate(startDate),
       endDate: endDate ? localDate(endDate) : null,
-      // softDelete: null,
+      employeeId,
       reservationMinLength,
       // reservationDayPeriod,
       // reservationMinCancelTime,

@@ -163,17 +163,10 @@ export const onUserDelete = password => {
 };
 
 export const onUserWorkplacesRead = () => dispatch => {
-  const db = firebase.firestore();
-  const clientId = firebase.auth().currentUser.uid;
+  const profileId = firebase.auth().currentUser.uid;
 
-  let workplaces = [];
-  db.collection(`Profiles/${clientId}/Workplaces`)
-    .where('softDelete', '==', null)
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => workplaces.push({ commerceId: doc.data().commerceId, name: doc.data().name }));
-      dispatch({ type: ON_WORKPLACES_READ, payload: workplaces });
-    });
+  axios.get(`${backendUrl}/api/workplaces/`, { params: { profileId } })
+  .then(response => dispatch({ type: ON_WORKPLACES_READ, payload: response.data }));
 };
 
 export const onUserPasswordUpdate = ({ password, newPassword }, navigation) => {

@@ -34,7 +34,7 @@ export const onEmployeeInvite = (employeeData, navigation) => dispatch => {
 
   const { commerceId, commerceName, role, visible, profileId } = employeeData;
 
-  axios.post(`${backendUrl}/api/employees/create`, {
+  axios.post(`${backendUrl}/api/employees/create/`, {
     commerceId,
     profileId,
     roleId: role.roleId,
@@ -52,7 +52,10 @@ export const onEmployeeInvite = (employeeData, navigation) => dispatch => {
       dispatch({ type: ON_EMPLOYEE_CREATED });
       navigation.goBack();
     })
-    .catch(() => dispatch({ type: ON_EMPLOYEE_SAVE_FAIL }));
+    .catch(error => {
+      dispatch({ type: ON_EMPLOYEE_SAVE_FAIL })
+      console.error(error);
+    });
 };
 
 export const onEmployeeCreate = ({ employeeId, profileId }) => async dispatch => {
@@ -132,7 +135,7 @@ export const onUserByEmailSearch = (email, commerceId) => dispatch => {
   dispatch({ type: ON_USER_SEARCHING });
 
   searchUserByEmail(email).then(response => {
-    if (response.data) {
+    if (!response.data.length) {
       dispatch({ type: ON_USER_SEARCH_FAIL, payload: 'No se encontró ningún usuario' });
     } else {
       const profile = response.data[0];

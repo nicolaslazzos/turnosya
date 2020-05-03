@@ -32,7 +32,7 @@ class ClientDrawerContent extends Component {
   onCommercePress = commerceId => {
     this.setState({ loadingId: commerceId }, async () => {
       try {
-        this.props.onCommerceOpen(commerceId);
+        await this.props.onCommerceOpen(commerceId);
         const success = await this.props.onCommerceRead(commerceId);
 
         if (success && this.props.areaId && this.props.role.roleId) {

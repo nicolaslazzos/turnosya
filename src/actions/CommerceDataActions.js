@@ -54,8 +54,22 @@ export const onCommerceFormOpen = () => {
   };
 };
 
-export const onCommerceOpen = commerceId => dispatch => {
+export const onCommerceOpen = commerceId => async dispatch => {
   const profileId = firebase.auth().currentUser.uid;
+
+  try {
+    const response = await axios.get(`${backendUrl}/api/employees/`, { params: { commerceId, profileId } });
+
+    if (response.data.length) {
+      const employee = response.data[0];
+      dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: employee.role, employeeId: employee.id } });
+      dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: employee.id } });
+    }
+
+    dispatch({ type: ON_LOCATION_VALUES_RESET });
+  } catch (error) {
+    console.error(error);
+  }
 
   axios.get(`${backendUrl}/api/employees/`, { params: { commerceId, profileId } })
     .then(response => {
@@ -110,6 +124,7 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
     navigation.navigate(`${area.areaId}`);
     navigation.navigate(`${area.areaId}Calendar`);
   } catch (error) {
+    console.error(error);
     dispatch({ type: ON_COMMERCE_CREATE_FAIL, payload: error });
   }
 };
