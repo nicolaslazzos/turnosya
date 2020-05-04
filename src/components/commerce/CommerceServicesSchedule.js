@@ -42,7 +42,7 @@ class CommerceServicesSchedule extends Component {
       startDate: true
     });
 
-    this.unsubscribeServicesRead = this.props.onServicesRead(this.props.commerceId);
+    this.props.onServicesRead({ commerceId: this.props.commerceId });
 
     this.willFocusSubscription = this.props.navigation.addListener(
       'willFocus',
@@ -58,7 +58,6 @@ class CommerceServicesSchedule extends Component {
 
   componentWillUnmount() {
     this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeServicesRead && this.unsubscribeServicesRead();
     this.unsubscribeEmployeesRead && this.unsubscribeEmployeesRead();
     this.willFocusSubscription.remove && this.willFocusSubscription.remove();
   }

@@ -95,7 +95,7 @@ class CommerceCourtsSchedule extends Component {
 
     // se filtran los courts segun los courtTypes seleccionados
     const courts = this.props.courts.filter(court => {
-      return this.isCourtTypeSelected(court.court);
+      return this.isCourtTypeSelected(court.courtType.name);
     });
 
     const newSlots = slots.map(slot => {

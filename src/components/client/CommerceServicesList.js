@@ -3,22 +3,11 @@ import { FlatList } from 'react-native';
 import { ListItem } from 'react-native-elements';
 import { connect } from 'react-redux';
 import { EmptyList, Spinner } from '../common';
-import { onServicesRead, onReservationValueChange, onServicesByEmployeeRead } from '../../actions';
+import { onServicesRead, onReservationValueChange } from '../../actions';
 
 class CommerceServicesList extends Component {
   componentDidMount() {
-    if (this.props.employee) {
-      this.unsubscribeServices = this.props.onServicesByEmployeeRead({
-        commerceId: this.props.commerce.objectID,
-        employeeId: this.props.employee.id
-      });
-    } else {
-      this.unsubscribeServices = this.props.onServicesRead(this.props.commerce.objectID);
-    }
-  }
-
-  componentWillUnmount() {
-    this.unsubscribeServices && this.unsubscribeServices();
+    this.props.onServicesRead({ commerceId: this.props.commerce.objectID, employeeId: this.props.employee ? this.props.employee.id : null });
   }
 
   onServicePress = service => {
@@ -78,6 +67,5 @@ const mapStateToProps = state => {
 
 export default connect(mapStateToProps, {
   onServicesRead,
-  onReservationValueChange,
-  onServicesByEmployeeRead
+  onReservationValueChange
 })(CommerceServicesList);
