@@ -35,7 +35,7 @@ class CommerceCourtsSchedule extends Component {
       selectedDate: this.state.selectedDate
     });
 
-    this.unsubscribeCourtsRead = this.props.onCourtsRead({ commerceId: this.props.commerceId });
+    this.props.onCourtsRead({ commerceId: this.props.commerceId });
 
     this.props.navigation.setParams({ onConfigurationPress: this.onConfigurationPress });
   }
@@ -46,18 +46,13 @@ class CommerceCourtsSchedule extends Component {
     }
   }
 
-  componentWillUnmount() {
-    this.unsubscribeCourtsRead && this.unsubscribeCourtsRead();
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-  }
-
   onDateChanged = date => {
     const { scheduleStartDate, scheduleEndDate, scheduleId } = this.props;
 
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onCommerceReservationsRead({
+    this.props.onCommerceReservationsRead({
       commerceId: this.props.commerceId,
-      selectedDate: date
+      startDate: date,
+      endDate: moment(date).add(1, 'days')
     });
 
     if (!scheduleId || (scheduleEndDate && date >= scheduleEndDate) || date < scheduleStartDate) {

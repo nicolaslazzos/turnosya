@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { CardSection, Button } from '../common';
 import { MAIN_COLOR } from '../../constants';
-import { onClientServiceReservationCreate } from '../../actions';
+import { onClientReservationCreate } from '../../actions';
 import ServiceReservationDetails from '../ServiceReservationDetails';
 import { isEmailVerified, newReservationNotificationFormat } from '../../utils';
 import VerifyEmailModal from './VerifyEmailModal';
@@ -49,16 +49,14 @@ class ConfirmServiceReservation extends Component {
           receptorName: `${commerce.name}`
         });
 
-        this.props.onClientServiceReservationCreate({
-          commerceId: commerce.objectID,
-          areaId,
+        this.props.onClientReservationCreate({
+          commerceId: commerce.commerceId,
           serviceId: service.id,
           employeeId: employee.id,
           startDate,
           endDate,
           price,
-          notification
-        });
+        }, notification);
       } else {
         this.setState({ modal: true });
       }
@@ -167,4 +165,4 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(mapStateToProps, { onClientServiceReservationCreate })(ConfirmServiceReservation);
+export default connect(mapStateToProps, { onClientReservationCreate })(ConfirmServiceReservation);

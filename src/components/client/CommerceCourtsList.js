@@ -10,11 +10,11 @@ class CommerceCourtsList extends Component {
     title: navigation.getParam('title')
   });
 
-  courtReservation = court => {
+  isCourtAvailable = court => {
     const { reservations, startDate } = this.props;
 
-    return reservations.find(reservation => {
-      return reservation.startDate.toString() === startDate.toString() && reservation.courtId === court.id;
+    return !reservations.some(reservation => {
+      return reservation.startDate.toString() === startDate.toString() && reservation.court.id === court.id;
     });
   };
 
@@ -22,29 +22,28 @@ class CommerceCourtsList extends Component {
     this.props.onNewReservation();
 
     const light = !!(court.lightPrice && court.lightHour && court.lightHour <= this.props.startDate.format('HH:mm'));
+
     this.props.onReservationValueChange({
       court,
       light,
       price: light ? court.lightPrice : court.price
     });
-    
+
     this.props.navigation.navigate('confirmCourtReservation');
   };
 
   renderRow = ({ item }) => {
-    const courtAvailable = !this.courtReservation(item);
+    const courtAvailable = this.isCourtAvailable(item);
     const { startDate, endDate } = this.props;
 
     return (
       <CommerceCourtsStateListItem
         court={item}
-        commerceId={this.props.commerce.objectID}
+        commerceId={this.props.commerce.commerceId}
         navigation={this.props.navigation}
         disabled={isCourtDisabledOnSlot(item, { startDate, endDate })}
         courtAvailable={courtAvailable}
-        onPress={() =>
-          courtAvailable ? this.onCourtPress(item) : Toast.show({ text: 'Esta cancha ya está reservada' })
-        }
+        onPress={() => courtAvailable ? this.onCourtPress(item) : Toast.show({ text: 'Esta cancha ya está reservada' })}
       />
     );
   };
@@ -55,7 +54,7 @@ class CommerceCourtsList extends Component {
         <FlatList
           data={this.props.courts}
           renderItem={this.renderRow.bind(this)}
-          keyExtractor={court => court.id}
+          keyExtractor={court => court.id.toString()}
           extraData={this.props.reservations}
         />
       );

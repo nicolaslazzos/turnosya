@@ -57,17 +57,17 @@ class ClientReservationDetails extends Component {
       employeeId: this.state.reservation.employeeId || null
     });
 
-    this.props.onCommerceReviewReadById({
-      commerceId: this.state.reservation.commerceId,
-      reviewId: this.state.reservation.reviewId
-    });
+    // this.props.onCommerceReviewReadById({
+    //   commerceId: this.state.reservation.commerceId,
+    //   reviewId: this.state.reservation.reviewId
+    // });
 
-    this.props.onClientReviewReadById({
-      clientId: this.props.clientId,
-      reviewId: this.state.reservation.receivedReviewId
-    });
+    // this.props.onClientReviewReadById({
+    //   clientId: this.props.clientId,
+    //   reviewId: this.state.reservation.receivedReviewId
+    // });
 
-    this.props.onCommerceMPagoTokenRead(this.state.reservation.commerceId);
+    // this.props.onCommerceMPagoTokenRead(this.state.reservation.commerceId);
   }
 
   componentDidUpdate(prevProps) {

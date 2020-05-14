@@ -4,7 +4,7 @@ import { ListItem, ButtonGroup } from 'react-native-elements';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { Calendar, Spinner, EmptyList, AreaComponentRenderer, PermissionsAssigner, Badge } from '../common';
-import { onCommerceDetailedReservationsRead } from '../../actions';
+import { onCommerceReservationsRead } from '../../actions';
 import { MAIN_COLOR, AREAS, ROLES, SUCCESS_COLOR } from '../../constants';
 import EmployeesFilter from './EmployeesFilter';
 
@@ -26,17 +26,16 @@ class CommerceReservationsList extends Component {
   }
 
   componentWillUnmount() {
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
     this.willFocusSubscription.remove && this.willFocusSubscription.remove();
   }
 
   onDateSelected = date => {
     const selectedDate = moment([date.year(), date.month(), date.date()]);
 
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onCommerceDetailedReservationsRead({
+    this.props.onCommerceReservationsRead({
       commerceId: this.props.commerceId,
-      selectedDate,
+      startDate: selectedDate,
+      endDate: moment(selectedDate).add(1, 'days'),
       employeeId: this.state.selectedEmployeeId
     });
 
@@ -246,5 +245,5 @@ const mapStateToProps = state => {
 };
 
 export default connect(mapStateToProps, {
-  onCommerceDetailedReservationsRead
+  onCommerceReservationsRead
 })(CommerceReservationsList);

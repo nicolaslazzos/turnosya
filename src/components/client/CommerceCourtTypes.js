@@ -15,7 +15,7 @@ class CommerceCourtTypes extends Component {
 
   renderItem = ({ item }) => {
     return (
-      <TouchableHighlight onPress={() => this.onCourtTypePress(item.name)} underlayColor="transparent">
+      <TouchableHighlight onPress={() => this.onCourtTypePress(item.id)} underlayColor="transparent">
         <Card
           image={item.image ? { uri: item.image } : null}
           imageStyle={{ height: 80 }}
@@ -38,7 +38,7 @@ class CommerceCourtTypes extends Component {
         <FlatList
           data={courtTypesList}
           renderItem={this.renderItem}
-          keyExtractor={courtType => courtType.name}
+          keyExtractor={courtType => courtType.id.toString()}
           contentContainerStyle={{ paddingBottom: 15 }}
         />
       );

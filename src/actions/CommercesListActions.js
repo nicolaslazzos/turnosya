@@ -36,7 +36,7 @@ export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch =>
 export const onAreasRead = () => dispatch => {
   dispatch({ type: ON_AREAS_READING });
 
-  axios.get(`${backendUrl}/api/areas/`)
+  axios.get(`${backendUrl}/api/commerces/areas/`)
     .then(response => dispatch({ type: ON_AREAS_SEARCH_READ, payload: { areas: response.data } }))
     .catch(error => console.error(error));
 };

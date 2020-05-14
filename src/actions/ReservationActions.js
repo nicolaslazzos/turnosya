@@ -1,6 +1,9 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
 import { onCommerceNotificationSend } from './NotificationActions';
+import { NOTIFICATION_TYPES } from '../constants';
+import { localDate } from '../utils';
 import {
   ON_RESERVATION_VALUE_CHANGE,
   ON_RESERVATION_CREATING,
@@ -10,7 +13,10 @@ import {
   ON_NEW_SERVICE_RESERVATION,
   ON_RESERVATION_EXISTS
 } from './types';
-import { NOTIFICATION_TYPES } from '../constants';
+
+
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
 
 export const onReservationValueChange = payload => {
   return { type: ON_RESERVATION_VALUE_CHANGE, payload };
@@ -24,133 +30,32 @@ export const onNewServiceReservation = () => {
   return { type: ON_NEW_SERVICE_RESERVATION };
 };
 
-export const onClientCourtReservationCreate = ({
-  commerceId,
-  areaId,
-  courtId,
-  courtType,
-  startDate,
-  endDate,
-  price,
-  light,
-  notification
-}) => {
-  return onClientReservationCreate(
-    {
-      areaId,
-      courtId,
-      courtType,
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      price,
-      light
-    },
-    commerceId,
-    notification
-  );
-};
-
-export const onClientServiceReservationCreate = ({
-  commerceId,
-  areaId,
-  serviceId,
-  employeeId,
-  startDate,
-  endDate,
-  price,
-  notification
-}) => {
-  return onClientReservationCreate(
-    {
-      areaId,
-      serviceId,
-      employeeId,
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      price
-    },
-    commerceId,
-    notification
-  );
-};
-
-const serviceReservationExists = async ({ commerceId, employeeId, startDate, endDate }) => {
-  // creo que es lo mejor que pude hacerlo teniendo en cuenta las limitaciones de firestore
-  // de todas formas traten de no hacer reservas duplicadas xd
-  const db = firebase.firestore();
-
-  try {
-    const snapshot = await db
-      .collection(`Commerces/${commerceId}/Reservations`)
-      .where('cancellationDate', '==', null)
-      .where('endDate', '>', startDate)
-      .where('employeeId', '==', employeeId)
-      .get();
-
-    return snapshot.docs.some(res => res.data().startDate.toDate() < endDate);
-  } catch (error) {
-    throw new Error(error);
-  }
-};
-
-const courtReservationExists = async ({ commerceId, courtId, startDate }) => {
-  const db = firebase.firestore();
-
-  try {
-    const snapshot = await db
-      .collection(`Commerces/${commerceId}/Reservations`)
-      .where('cancellationDate', '==', null)
-      .where('startDate', '==', startDate)
-      .where('courtId', '==', courtId)
-      .get();
-
-    return !snapshot.empty;
-  } catch (error) {
-    throw new Error(error);
-  }
-};
-
-const onClientReservationCreate = (reservationObject, commerceId, notification) => async dispatch => {
+export const onClientReservationCreate = ({ commerceId, employeeId, courtId, serviceId, clientName, clientPhone, startDate, endDate, price }, notification) => async dispatch => {
   dispatch({ type: ON_RESERVATION_CREATING });
 
-  const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
-  const batch = db.batch();
-
-  const commerceReservationRef = db.collection(`Commerces/${commerceId}/Reservations`).doc();
-  const clientReservationRef = db.doc(`Profiles/${currentUser.uid}/Reservations/${commerceReservationRef.id}`);
+  const clientId = firebase.auth().currentUser.uid;
 
   try {
-    const stateDoc = await db.doc(`ReservationStates/reserved`).get();
+    // if ((courtId && await courtReservationExists({ commerceId, courtId, startDate })) ||
+    //   (employeeId && await serviceReservationExists({ commerceId, employeeId, startDate, endDate })))
+    //   return dispatch({ type: ON_RESERVATION_EXISTS });
 
-    const reservationData = {
-      ...reservationObject,
-      reservationDate: new Date(),
-      cancellationDate: null,
-      state: { id: stateDoc.id, name: stateDoc.data().name }
-    };
-
-    // reserva que se guarda en el negocio
-    batch.set(commerceReservationRef, {
-      ...reservationData,
-      clientId: currentUser.uid
+    await axios.post(`${backendUrl}/api/reservations/create/`, {
+      commerceId,
+      clientId,
+      employeeId,
+      courtId,
+      serviceId,
+      stateId: 'reserved',
+      clientName,
+      clientPhone,
+      reservationDate: localDate(),
+      startDate: localDate(startDate),
+      endDate: localDate(endDate),
+      price: parseFloat(price)
     });
 
-    // reserva que se guarda en el cliente
-    batch.set(clientReservationRef, {
-      ...reservationData,
-      commerceId
-    });
-
-    const { employeeId, courtId, startDate, endDate } = reservationData;
-
-    if ((courtId && await courtReservationExists({ commerceId, courtId, startDate })) ||
-      (employeeId && await serviceReservationExists({ commerceId, employeeId, startDate, endDate })))
-      return dispatch({ type: ON_RESERVATION_EXISTS });
-
-    await batch.commit();
-
-    onCommerceNotificationSend(notification, commerceId, employeeId, currentUser.uid, NOTIFICATION_TYPES.NOTIFICATION);
+    // onCommerceNotificationSend(notification, commerceId, employeeId, currentUser.uid, NOTIFICATION_TYPES.NOTIFICATION);
 
     dispatch({ type: ON_RESERVATION_CREATE });
   } catch (error) {

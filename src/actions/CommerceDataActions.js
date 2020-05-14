@@ -216,7 +216,7 @@ export const onCommerceUpdate = (commerceData, navigation) => async dispatch => 
 };
 
 export const onAreasReadForPicker = () => dispatch => {
-  axios.get(`${backendUrl}/api/areas/id/`)
+  axios.get(`${backendUrl}/api/commerces/areas/id/`)
     .then(response => dispatch({ type: ON_AREAS_READ_FOR_PICKER, payload: response.data }))
     .catch(error => console.error(error));
 };

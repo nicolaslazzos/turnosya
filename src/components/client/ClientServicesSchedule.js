@@ -7,7 +7,7 @@ import {
   onScheduleRead,
   onScheduleValueChange,
   onReservationValueChange,
-  onClientCommerceReservationsRead,
+  onCommerceReservationsRead,
   onNewReservation
 } from '../../actions';
 
@@ -16,7 +16,7 @@ class ClientServicesSchedule extends Component {
 
   componentDidMount() {
     this.props.onScheduleRead({
-      commerceId: this.props.commerce.objectID,
+      commerceId: this.props.commerce.commerceId,
       selectedDate: this.state.selectedDate,
       employeeId: this.props.employee.id
     });
@@ -28,23 +28,19 @@ class ClientServicesSchedule extends Component {
     }
   }
 
-  componentWillUnmount() {
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-  }
-
   onDateChanged = date => {
     const { scheduleStartDate, scheduleEndDate, scheduleId } = this.props;
 
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onClientCommerceReservationsRead({
-      commerceId: this.props.commerce.objectID,
-      selectedDate: date,
+    this.props.onCommerceReservationsRead({
+      commerceId: this.props.commerce.commerceId,
+      startDate: date,
+      endDate: moment(date).add(1, 'days'),
       employeeId: this.props.employee.id
     });
 
     if (!scheduleId || (scheduleEndDate && date >= scheduleEndDate) || date < scheduleStartDate) {
       this.props.onScheduleRead({
-        commerceId: this.props.commerce.objectID,
+        commerceId: this.props.commerce.commerceId,
         selectedDate: date,
         employeeId: this.props.employee.id
       });
@@ -215,6 +211,6 @@ export default connect(mapStateToProps, {
   onScheduleValueChange,
   onScheduleRead,
   onReservationValueChange,
-  onClientCommerceReservationsRead,
+  onCommerceReservationsRead,
   onNewReservation
 })(ClientServicesSchedule);

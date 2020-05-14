@@ -15,13 +15,8 @@ class ClientReservationsList extends Component {
     this.onReservationsRead();
   }
 
-  componentWillUnmount() {
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-  }
-
   onReservationsRead = () => {
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onClientReservationsListRead();
+    this.props.onClientReservationsListRead();
   };
 
   filterLists = () => {
@@ -56,9 +51,7 @@ class ClientReservationsList extends Component {
     return (
       <ListItem
         title={commerce.name}
-        subtitle={`${DAYS[startDate.day()]} ${startDate.format('D')} de ${
-          MONTHS[startDate.month()]
-          }\nDe ${startDate.format('HH:mm')} hs. a ${endDate.format('HH:mm')} hs.`}
+        subtitle={`${DAYS[startDate.day()]} ${startDate.format('D')} de ${MONTHS[startDate.month()]}\nDe ${startDate.format('HH:mm')} hs. a ${endDate.format('HH:mm')} hs.`}
         rightTitle={`$${price}`}
         rightTitleStyle={styles.listItemRightTitleStyle}
         rightSubtitle={
@@ -70,12 +63,8 @@ class ClientReservationsList extends Component {
             }
           </View>
         }
+        onPress={() => this.props.navigation.navigate('reservationDetails', { reservation: item })}
         bottomDivider
-        onPress={() =>
-          this.props.navigation.navigate('reservationDetails', {
-            reservation: item
-          })
-        }
       />
     );
   };

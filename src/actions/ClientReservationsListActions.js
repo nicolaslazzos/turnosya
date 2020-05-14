@@ -1,8 +1,10 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
 import { formatReservation } from './ReservationsListActions';
 import { AREAS, NOTIFICATION_TYPES } from '../constants';
 import { onCommerceNotificationSend } from './NotificationActions';
+import { localDate } from '../utils';
 import {
   ON_CLIENT_RESERVATIONS_READ,
   ON_CLIENT_RESERVATIONS_READING,
@@ -11,93 +13,29 @@ import {
   ON_CLIENT_RESERVATION_CANCELING
 } from './types';
 
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
+
 export const onClientReservationsListRead = () => dispatch => {
   dispatch({ type: ON_CLIENT_RESERVATIONS_READING });
 
-  const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
+  const clientId = firebase.auth().currentUser.uid;
 
-  return db
-    .collection(`Profiles/${currentUser.uid}/Reservations`)
-    .where('cancellationDate', '==', null)
-    .orderBy('startDate', 'desc')
-    .limit(20) // lo puse por ahora para no buscar todas al pedo, habria que ver de ir cargando mas a medida que se scrollea
-    .onSnapshot(snapshot => {
-      const reservations = [];
-
-      if (snapshot.empty) {
-        return dispatch({ type: ON_CLIENT_RESERVATIONS_READ, payload: reservations });
-      }
-
-      snapshot.forEach(async res => {
-        const { commerceId, areaId, serviceId, employeeId, courtId } = res.data();
-        let service, employee, court = null;
-
-        try {
-          const commerce = await db.doc(`Commerces/${commerceId}`).get();
-
-          if (areaId === AREAS.hairdressers) {
-            service = await db.doc(`Commerces/${commerceId}/Services/${serviceId}`).get();
-            employee = await db.doc(`Commerces/${commerceId}/Employees/${employeeId}`).get();
-            // } else if (areaId === AREAS.sports) { // no anda para reservas viejas que no tenian el areaId
-          } else {
-            court = await db.doc(`Commerces/${commerceId}/Courts/${courtId}`).get();
-          }
-
-          reservations.push(formatReservation({ res, commerce, service, court, employee }));
-
-          if (snapshot.size === reservations.length) {
-            dispatch({
-              type: ON_CLIENT_RESERVATIONS_READ,
-              payload: reservations.sort((a, b) => a.startDate - b.startDate)
-            });
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      });
-    });
+  axios.get(`${backendUrl}/api/reservations/`, { params: { clientId } })
+    .then(response => dispatch({ type: ON_CLIENT_RESERVATIONS_READ, payload: response.data.map(formatReservation) }))
+    .catch(error => console.error(error));
 };
 
 export const onClientReservationCancel = ({ reservationId, commerceId, navigation, notification }) => {
-  const { currentUser } = firebase.auth();
-  const db = firebase.firestore();
-  const batch = db.batch();
+  axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'canceled', cancellationDate: localDate() })
+    .then(() => {
+      // onCommerceNotificationSend(notification, commerceId, notification.employeeId, currentUser.uid, NOTIFICATION_TYPES.NOTIFICATION);
 
-  return dispatch => {
-    dispatch({ type: ON_CLIENT_RESERVATION_CANCELING }),
-      db
-        .doc(`ReservationStates/canceled`)
-        .get()
-        .then(stateDoc => {
-          const cancellationData = {
-            state: { id: stateDoc.id, name: stateDoc.data().name },
-            cancellationDate: new Date()
-          };
-
-          batch.update(db.doc(`Profiles/${currentUser.uid}/Reservations/${reservationId}`), cancellationData);
-          batch.update(db.doc(`Commerces/${commerceId}/Reservations/${reservationId}`), cancellationData);
-
-          batch
-            .commit()
-            .then(() => {
-              onCommerceNotificationSend(
-                notification,
-                commerceId,
-                notification.employeeId,
-                currentUser.uid,
-                NOTIFICATION_TYPES.NOTIFICATION
-              );
-
-              dispatch({ type: ON_CLIENT_RESERVATION_CANCEL });
-              navigation.goBack();
-            })
-            .catch(() => {
-              dispatch({ type: ON_CLIENT_RESERVATION_CANCEL_FAIL });
-            });
-        })
-        .catch(() => {
-          dispatch({ type: ON_CLIENT_RESERVATION_CANCEL_FAIL });
-        });
-  };
+      dispatch({ type: ON_CLIENT_RESERVATION_CANCEL });
+      navigation.goBack();
+    })
+    .catch(() => {
+      console.error(error);
+      dispatch({ type: ON_CLIENT_RESERVATION_CANCEL_FAIL });
+    });
 };

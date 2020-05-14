@@ -37,7 +37,7 @@ class CommerceServicesSchedule extends Component {
       employeeId: this.state.selectedEmployeeId
     });
 
-    this.unsubscribeEmployeesRead = this.props.onEmployeesRead({
+    this.props.onEmployeesRead({
       commerceId: this.props.commerceId,
       startDate: true
     });
@@ -57,18 +57,16 @@ class CommerceServicesSchedule extends Component {
   }
 
   componentWillUnmount() {
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeEmployeesRead && this.unsubscribeEmployeesRead();
     this.willFocusSubscription.remove && this.willFocusSubscription.remove();
   }
 
   onDateChanged = date => {
     const { scheduleStartDate, scheduleEndDate, scheduleId } = this.props;
 
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onCommerceReservationsRead({
+    this.props.onCommerceReservationsRead({
       commerceId: this.props.commerceId,
-      selectedDate: date,
+      startDate: date,
+      endDate: moment(date).add(1, 'days'),
       employeeId: this.state.selectedEmployeeId
     });
 

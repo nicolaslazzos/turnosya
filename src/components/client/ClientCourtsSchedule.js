@@ -8,8 +8,8 @@ import {
   onScheduleRead,
   onScheduleValueChange,
   onReservationValueChange,
-  onClientCommerceReservationsRead,
-  onCommerceCourtsReadByType,
+  onCommerceReservationsRead,
+  onCourtsRead,
   isCourtDisabledOnSlot
 } from '../../actions';
 
@@ -18,12 +18,12 @@ class ClientCourtsSchedule extends Component {
 
   componentDidMount() {
     this.props.onScheduleRead({
-      commerceId: this.props.commerce.objectID,
+      commerceId: this.props.commerce.commerceId,
       selectedDate: this.state.selectedDate
     });
 
-    this.unsubscribeCourtsRead = this.props.onCommerceCourtsReadByType({
-      commerceId: this.props.commerce.objectID,
+    this.props.onCourtsRead({
+      commerceId: this.props.commerce.commerceId,
       courtTypeId: this.props.courtType
     });
   }
@@ -34,24 +34,19 @@ class ClientCourtsSchedule extends Component {
     }
   }
 
-  componentWillUnmount() {
-    this.unsubscribeCourtsRead && this.unsubscribeCourtsRead();
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-  }
-
   onDateChanged = date => {
     const { scheduleStartDate, scheduleEndDate, scheduleId } = this.props;
 
-    this.unsubscribeReservationsRead && this.unsubscribeReservationsRead();
-    this.unsubscribeReservationsRead = this.props.onClientCommerceReservationsRead({
-      commerceId: this.props.commerce.objectID,
-      selectedDate: date,
-      courtType: this.props.courtType
+    this.props.onCommerceReservationsRead({
+      commerceId: this.props.commerce.commerceId,
+      startDate: date,
+      endDate: moment(date).add(1, 'day'),
+      courtTypeId: this.props.courtType
     });
 
     if (!scheduleId || (scheduleEndDate && date >= scheduleEndDate) || date < scheduleStartDate) {
       this.props.onScheduleRead({
-        commerceId: this.props.commerce.objectID,
+        commerceId: this.props.commerce.commerceId,
         selectedDate: date
       });
     }
@@ -186,6 +181,6 @@ export default connect(mapStateToProps, {
   onScheduleValueChange,
   onScheduleRead,
   onReservationValueChange,
-  onClientCommerceReservationsRead,
-  onCommerceCourtsReadByType
+  onCommerceReservationsRead,
+  onCourtsRead
 })(ClientCourtsSchedule);

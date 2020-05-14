@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CardSection, Button } from '../common';
 import { MAIN_COLOR } from '../../constants';
 import CourtReservationDetails from '../CourtReservationDetails';
-import { onClientCourtReservationCreate } from '../../actions';
+import { onClientReservationCreate } from '../../actions';
 import { isEmailVerified, newReservationNotificationFormat } from '../../utils';
 import VerifyEmailModal from './VerifyEmailModal';
 
@@ -50,17 +50,13 @@ class ConfirmCourtReservation extends Component {
           receptorName: `${commerce.name}`
         });
 
-        this.props.onClientCourtReservationCreate({
-          commerceId: commerce.objectID,
-          areaId,
+        this.props.onClientReservationCreate({
+          commerceId: commerce.commerceId,
           courtId: court.id,
-          courtType,
           startDate,
           endDate,
           price,
-          light,
-          notification
-        });
+        }, notification);
       } else {
         this.setState({ modal: true });
       }
@@ -121,7 +117,7 @@ class ConfirmCourtReservation extends Component {
         <CourtReservationDetails
           mode="commerce"
           name={commerce.name}
-          info={commerce.address + ', ' + commerce.city + ', ' + commerce.provinceName}
+          info={commerce.address + ', ' + commerce.city + ', ' + commerce.province.name}
           infoIcon="md-pin"
           picture={commerce.profilePicture}
           court={court}
@@ -181,4 +177,4 @@ const mapStateToProps = state => {
   };
 };
 
-export default connect(mapStateToProps, { onClientCourtReservationCreate })(ConfirmCourtReservation);
+export default connect(mapStateToProps, { onClientReservationCreate })(ConfirmCourtReservation);

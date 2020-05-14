@@ -18,7 +18,7 @@ class CommerceCourtsStateListItem extends Component {
   };
 
   render() {
-    const { name, court, ground, price, lightPrice, lightHour, id } = this.props.court;
+    const { name, courtType, groundType, price, lightPrice, lightHour, id } = this.props.court;
     const { disabled, onPress, startDate } = this.props;
     const { badgeTitle, badgeColor } = this.setCourtBadge();
 
@@ -33,7 +33,7 @@ class CommerceCourtsStateListItem extends Component {
           key={id}
           subtitle={
             <View style={{ alignItems: 'flex-start' }}>
-              <Text style={{ color: 'grey' }}>{`${court} - ${ground}`}</Text>
+              <Text style={{ color: 'grey' }}>{`${courtType.name} - ${groundType.name}`}</Text>
               <Badge value={badgeTitle} color={badgeColor} />
             </View>
           }

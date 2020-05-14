@@ -64,7 +64,7 @@ class CourtReservationDetails extends Component {
             <Text style={styles.mediumText}>{court.name}</Text>
           </CardSection>
           <CardSection style={[styles.cardSections, { paddingBottom: 0 }]}>
-            <Text style={styles.regularText}>{`${court.court} - ${court.ground}`}</Text>
+            <Text style={styles.regularText}>{`${court.courtType.name} - ${court.groundType.name}`}</Text>
           </CardSection>
           <CardSection style={styles.cardSections}>
             <Text style={styles.regularText}>{light ? 'Con Luz' : 'Sin Luz'}</Text>
