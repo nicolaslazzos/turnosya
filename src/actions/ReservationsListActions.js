@@ -31,18 +31,17 @@ export const formatReservation = res => {
     ...res,
     startDate: moment(res.startDate),
     endDate: moment(res.endDate),
-    reservationDate: moment(res.reservationDate),
+    reservationDate: moment(res.reservationDate)
   };
 };
 
-export const onCommerceReservationsRead = ({ commerceId, employeeId, clientId, courtTypeId, startDate, endDate }) => dispatch => {
+export const onCommerceReservationsRead = ({ commerceId, employeeId, courtTypeId, startDate, endDate }) => dispatch => {
   dispatch({ type: ON_COMMERCE_RESERVATIONS_READING });
 
   axios.get(`${backendUrl}/api/reservations/`, {
     params: {
       commerceId,
       employeeId,
-      clientId,
       courtTypeId,
       startDate: startDate ? localDate(startDate) : null,
       endDate: endDate ? localDate(endDate) : null
@@ -52,31 +51,31 @@ export const onCommerceReservationsRead = ({ commerceId, employeeId, clientId, c
     .catch(error => console.error(error));
 }
 
-export const onCommercePaymentRefund = ({ commerceId, mPagoToken, paymentId }) => async () => {
-  const db = firebase.firestore();
+// ver si las dos actions de abajo se pueden abarcar con la de arriba que es igual
 
-  const doc = await db.doc(`Commerces/${commerceId}/Payments/${paymentId}`).get();
+export const onCommerceDetailedReservationsRead = ({ commerceId, employeeId, courtTypeId, startDate, endDate }) => dispatch => {
+  dispatch({ type: ON_COMMERCE_RESERVATIONS_READING });
 
-  if (doc.data().method !== 'Efectivo')
-    fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds?access_token=${mPagoToken}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }).then(res => {
-      if (res.status === 200 || res.status === 201) {
-        db.doc(`Commerces/${commerceId}/Payments/${paymentId}`).update({ refundDate: new Date() });
-      }
-    });
-};
+  axios.get(`${backendUrl}/api/reservations/`, {
+    params: {
+      commerceId,
+      employeeId,
+      courtTypeId,
+      startDate: startDate ? localDate(startDate) : null,
+      endDate: endDate ? localDate(endDate) : null
+    }
+  })
+    .then(response => dispatch({ type: ON_COMMERCE_RESERVATIONS_READ, payload: { detailedReservations: response.data.map(formatReservation) } }))
+    .catch(error => console.error(error));
+}
+
 
 export const onCommerceReservationCancel = ({ commerceId, reservationId, clientId, navigation, notification }) => dispatch => {
   dispatch({ type: ON_COMMERCE_RESERVATION_CANCELING });
 
   axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'canceled', cancellationDate: localDate() })
     .then(() => {
-      // notification && onClientNotificationSend(notification, clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-      
+      notification && onClientNotificationSend(notification, clientId, NOTIFICATION_TYPES.NOTIFICATION);
       dispatch({ type: ON_COMMERCE_RESERVATION_CANCELED });
       navigation.goBack();
     })
@@ -89,79 +88,53 @@ export const onCommerceReservationCancel = ({ commerceId, reservationId, clientI
 export const onNextReservationsRead = ({ commerceId, startDate, endDate, employeeId, courtId }) => dispatch => {
   dispatch({ type: ON_COMMERCE_RESERVATIONS_READING });
 
-  const db = firebase.firestore();
-
-  let query = db
-    .collection(`Commerces/${commerceId}/Reservations`)
-    .where('cancellationDate', '==', null)
-    .where('endDate', '>', startDate.toDate());
-
-  if (employeeId) query = query.where('employeeId', '==', employeeId);
-
-  if (courtId) query = query.where('courtId', '==', courtId);
-
-  query
-    .orderBy('endDate')
-    .get()
-    .then(snapshot => {
-
-      const nextReservations = [];
-
-      if (snapshot.empty) {
-        return dispatch({
-          type: ON_COMMERCE_RESERVATIONS_READ,
-          payload: { nextReservations }
-        });
-      }
-
-      snapshot.forEach(doc => {
-        if (!endDate || (endDate && endDate > moment(doc.data().startDate.toDate())))
-          nextReservations.push({
-            id: doc.id,
-            paymentId: doc.data().paymentId,
-            clientId: doc.data().clientId,
-            startDate: moment(doc.data().startDate.toDate()),
-            endDate: moment(doc.data().endDate.toDate())
-          });
-      });
-
-      dispatch({
-        type: ON_COMMERCE_RESERVATIONS_READ,
-        payload: { nextReservations }
-      });
-    })
+  axios.get(`${backendUrl}/api/reservations/`, {
+    params: {
+      commerceId,
+      employeeId,
+      courtId,
+      startDate: startDate ? localDate(startDate) : null,
+      endDate: endDate ? localDate(endDate) : null
+    }
+  })
+    .then(response => dispatch({ type: ON_COMMERCE_RESERVATIONS_READ, payload: { nextReservations: response.data.map(formatReservation) } }))
     .catch(error => {
       console.error(error);
-      dispatch({ type: ON_COMMERCE_RESERVATIONS_READ_FAIL, payload: error })
+      dispatch({ type: ON_COMMERCE_RESERVATIONS_READ_FAIL, payload: error });
     });
 };
 
-export const onReservationsCancel = async (db, batch, commerceId, reservations) => {
+export const onCommercePaymentRefund = ({ payment }) => async () => {
+  try {
+    if (payment.paymentMethod.id !== 'cash') {
+      // fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds?access_token=${mPagoToken}`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json'
+      //   }
+      // }).then(res => {
+      //   if (res.status === 200 || res.status === 201) {
+      //     db.doc(`Commerces/${commerceId}/Payments/${paymentId}`).update({ refundDate: new Date() });
+      //   }
+      // });
+    } else {
+      axios.patch(`${backendUrl}/api/payments/update/${paymentId}/`, { refundDate: localDate() });
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const onReservationsCancel = async (commerceId, reservations) => {
+  const requests = []
 
   // reservations cancel
-  if (reservations.length) {
-    const mPagoToken = store.getState().commerceData.mPagoToken;
+  const mPagoToken = store.getState().commerceData.mPagoToken;
 
-    try {
-      const state = await db.doc(`ReservationStates/canceled`).get();
-      const updateObj = {
-        cancellationDate: new Date(),
-        state: { id: state.id, name: state.data().name }
-      };
+  reservations.forEach(res => {
+    requests.push(axios.patch(`${backendUrl}/api/reservations/update/${res.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
+    if (res.payment) onCommercePaymentRefund({ payment: res.payment })();
+  });
 
-      reservations.forEach(res => {
-        const commerceResRef = db.doc(`Commerces/${commerceId}/Reservations/${res.id}`);
-        batch.update(commerceResRef, updateObj);
-
-        if (res.clientId) {
-          const clientResRef = db.doc(`Profiles/${res.clientId}/Reservations/${res.id}`);
-          batch.update(clientResRef, updateObj);
-        }
-
-        if (res.paymentId) onCommercePaymentRefund({ commerceId, paymentId: res.paymentId, mPagoToken })();
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  }
+  return requests;
 };

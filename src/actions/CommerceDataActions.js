@@ -239,10 +239,9 @@ export const onCommerceDelete = (password, reservationsToCancel, navigation = nu
         // reservations cancel
         // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
 
-        // reservationsToCancel.forEach(res => {
-        //   if (res.clientId)
-        //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-        // });
+        reservationsToCancel.forEach(res => {
+          if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+        });
 
         dispatch({ type: ON_COMMERCE_DELETED });
         dispatch({ type: ON_CLIENT_DATA_VALUE_CHANGE, payload: { commerceId: null } });

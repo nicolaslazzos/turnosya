@@ -29,10 +29,8 @@ export const onEmployeeValueChange = payload => ({
 
 export const onEmployeeValuesReset = () => ({ type: ON_EMPLOYEE_VALUES_RESET });
 
-export const onEmployeeInvite = (employeeData, navigation) => dispatch => {
+export const onEmployeeInvite = ({ commerceId, commerceName, role, visible, profileId }, navigation) => dispatch => {
   dispatch({ type: ON_EMPLOYEE_SAVING });
-
-  const { commerceId, commerceName, role, visible, profileId } = employeeData;
 
   axios.post(`${backendUrl}/api/employees/create/`, {
     commerceId,
@@ -47,13 +45,13 @@ export const onEmployeeInvite = (employeeData, navigation) => dispatch => {
         body: `Usted ha sido invitado como empleado del negocio ${commerceName}. Seleccione si desea aceptar o rechazar la invitación!`
       };
 
-      // onClientNotificationSend(notification, profileId, commerceId, NOTIFICATION_TYPES.EMPLOYMENT_INVITE, { employeeId: response.data.id });
+      onClientNotificationSend(notification, profileId, NOTIFICATION_TYPES.INVITE, response.data.id);
 
       dispatch({ type: ON_EMPLOYEE_CREATED });
       navigation.goBack();
     })
     .catch(error => {
-      dispatch({ type: ON_EMPLOYEE_SAVE_FAIL })
+      dispatch({ type: ON_EMPLOYEE_SAVE_FAIL });
       console.error(error);
     });
 };
@@ -87,26 +85,16 @@ export const onEmployeeUpdate = ({ employeeId, role, visible }, navigation) => d
 };
 
 export const onEmployeeDelete = ({ employeeId, commerceId, profileId, reservationsToCancel }) => async dispatch => {
-  const db = firebase.firestore();
-
   try {
     await axios.delete(`${backendUrl}/api/employees/delete/${employeeId}`);
-
-    // const tokens = await db
-    //   .collection(`Commerces/${commerceId}/NotificationTokens`)
-    //   .where('employeeId', '==', employeeId)
-    //   .get();
 
     // if (!workplaces.empty) {
     //   reservationsToCancel && await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
     // }
 
-    // if (!tokens.empty) tokens.forEach(token => batch.delete(token.ref));
-
-    // reservationsToCancel && reservationsToCancel.forEach(res => {
-    //   if (res.clientId)
-    //     onClientNotificationSend(res.notification, res.clientId, commerceId, NOTIFICATION_TYPES.NOTIFICATION);
-    // });
+    reservationsToCancel && reservationsToCancel.forEach(res => {
+      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+    });
 
     dispatch({ type: ON_EMPLOYEE_DELETED });
   } catch (error) {

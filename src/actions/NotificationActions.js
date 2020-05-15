@@ -1,77 +1,59 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
+import { localDate } from '../utils';
 import { Notifications } from 'expo';
 import * as Permissions from 'expo-permissions';
 import Constants from 'expo-constants';
 import { Toast } from '../components/common';
 import { NOTIFICATION_TYPES } from '../constants';
 
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
+
 const onCommerceNotificationTokensRead = async commerceId => {
-  const db = firebase.firestore();
-  const tokens = [];
   try {
-    const querySnapshot = await db.collection(`Commerces/${commerceId}/NotificationTokens`).get();
-    querySnapshot.forEach(doc => tokens.push(doc.id));
-    return tokens;
+    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { commerceId } });
+    return tokens.data.map(token => token.id);
   } catch (error) {
     console.error(error);
   }
 };
 
-const onEmployeeNotificationTokensRead = async (commerceId, employeeId) => {
-  const db = firebase.firestore();
-  const employeeTokens = [];
+const onEmployeeNotificationTokensRead = async employeeId => {
   try {
-    const querySnapshot = await db
-      .collection(`Commerces/${commerceId}/NotificationTokens`)
-      .where('employeeId', '==', employeeId)
-      .get();
-    querySnapshot.forEach(doc => employeeTokens.push(doc.id));
-    return employeeTokens;
+    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { employeeId } });
+    return tokens.data.map(token => token.id);
   } catch (error) {
     console.error(error);
   }
 };
 
-const onClientNotificationTokensRead = async clientId => {
-  const db = firebase.firestore();
-  const tokens = [];
+const onClientNotificationTokensRead = async profileId => {
   try {
-    const querySnapshot = await db.collection(`Profiles/${clientId}/NotificationTokens`).get();
-    querySnapshot.forEach(doc => tokens.push(doc.id));
-
-    return tokens;
+    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { profileId } });
+    return tokens.data.map(token => token.id);
   } catch (error) {
     console.error(error);
   }
 };
 
-export const onCommerceNotificationSend = async (
-  notification,
-  commerceId,
-  employeeId,
-  clientId,
-  notificationType,
-  metadata
-) => {
+export const onCommerceNotificationSend = async (notification, commerceId, employeeId, notificationTypeId) => {
   if (employeeId) {
-    const tokens = await onEmployeeNotificationTokensRead(commerceId, employeeId);
-    const collectionRef = `Commerces/${commerceId}/Notifications`;
-    sendPushNotification({ ...notification, tokens, collectionRef, sentBy: clientId, notificationType, metadata });
+    const tokens = await onEmployeeNotificationTokensRead(employeeId);
+    sendPushNotification({ ...notification, tokens, commerceId, employeeId, notificationTypeId });
   } else {
     const tokens = await onCommerceNotificationTokensRead(commerceId);
-    const collectionRef = `Commerces/${commerceId}/Notifications`;
-    sendPushNotification({ ...notification, tokens, collectionRef, sentBy: clientId, notificationType, metadata });
+    sendPushNotification({ ...notification, tokens, commerceId, notificationTypeId });
   }
 };
 
-export const onClientNotificationSend = async (notification, clientId, commerceId, notificationType, metadata) => {
-  const tokens = await onClientNotificationTokensRead(clientId);
-  const collectionRef = `Profiles/${clientId}/Notifications`;
-  sendPushNotification({ ...notification, tokens, collectionRef, sentBy: commerceId, notificationType, metadata });
+export const onClientNotificationSend = async (notification, profileId, notificationTypeId) => {
+  const tokens = await onClientNotificationTokensRead(profileId);
+  sendPushNotification({ ...notification, tokens, profileId, notificationTypeId, metadata });
 };
 
-const sendPushNotification = ({ title, body, tokens, collectionRef, sentBy, notificationType, metadata }) => {
+const sendPushNotification = ({ title, body, tokens, profileId, commerceId, employeeId, notificationTypeId }) => {
   try {
     if (Array.isArray(tokens) && tokens.length) {
       tokens.forEach(async token => {
@@ -82,6 +64,7 @@ const sendPushNotification = ({ title, body, tokens, collectionRef, sentBy, noti
           body,
           _displayInForeground: true
         };
+
         const response = await fetch('https://exp.host/--/api/v2/push/send', {
           method: 'POST',
           headers: {
@@ -93,16 +76,15 @@ const sendPushNotification = ({ title, body, tokens, collectionRef, sentBy, noti
         });
       });
     }
-    const db = firebase.firestore();
-    db.collection(collectionRef).add({
+
+    axios.post(`${backendUrl}/api/notifications/create/`, {
+      commerceId,
+      profileId,
+      employeeId,
+      notificationTypeId,
       title,
       body,
-      date: new Date(),
-      softDelete: null,
-      sentBy,
-      notificationType,
-      read:0,
-      ...metadata
+      date: localDate()
     });
   } catch (error) {
     console.error(error);
@@ -137,86 +119,20 @@ export const onNotificationTokenRegister = async () => {
     const deviceToken = await getDeviceToken();
 
     if (deviceToken.length > 2) {
-      const { currentUser } = firebase.auth();
-      const db = firebase.firestore();
-      const batch = db.batch();
-
-      // Se guarda el deviceToken en la colección del cliente
-      const clientPushNotificationRef = db.doc(`Profiles/${currentUser.uid}/NotificationTokens/${deviceToken}`);
-      batch.set(clientPushNotificationRef, {});
-
-      const userDoc = await db.doc(`Profiles/${currentUser.uid}`).get();
-      const { commerceId } = userDoc.data();
-
-      if (commerceId) {
-        // Se guarda el deviceToken del dueño en un negocio
-        const ownerSnapshot = await db
-          .collection(`Commerces/${commerceId}/Employees`)
-          .where('softDelete', '==', null)
-          .where('profileId', '==', currentUser.uid)
-          .get();
-
-        const ownerTokenRef = db.doc(`Commerces/${commerceId}/NotificationTokens/${deviceToken}`);
-        ownerSnapshot.forEach(owner => batch.set(ownerTokenRef, { employeeId: owner.id }));
-      }
-
-      // Se guarda el deviceToken en las colecciónes de los comercios donde es empleado (con el id del employee)
-      const workplacesSnapshot = await db
-        .collection(`Profiles/${currentUser.uid}/Workplaces`)
-        .where('softDelete', '==', null)
-        .get();
-
-      for (const workplace of workplacesSnapshot.docs) {
-        const { commerceId: workplaceId } = workplace.data();
-
-        const employeeSnapshot = await db
-          .collection(`Commerces/${workplaceId}/Employees`)
-          .where('softDelete', '==', null)
-          .where('profileId', '==', currentUser.uid)
-          .get();
-
-        const employeeTokenRef = db.doc(`Commerces/${workplaceId}/NotificationTokens/${deviceToken}`);
-        employeeSnapshot.forEach(employee => batch.set(employeeTokenRef, { employeeId: employee.id }));
-      }
-
-      await batch.commit();
+      const profileId = firebase.auth().currentUser.uid;
+      await axios.post(`${backendUrl}/api/notifications/tokens/create/`, { id: deviceToken, profileId });
     }
   } catch (error) {
     console.error(error);
   }
 };
 
-export const onNotificationTokenDelete = async (commerceId, workplaces) => {
+export const onNotificationTokenDelete = async () => {
   try {
     const deviceToken = await getDeviceToken();
 
     if (deviceToken.length > 2) {
-      const { currentUser } = firebase.auth();
-      const db = firebase.firestore();
-      const batch = db.batch();
-
-      // Se elimina el deviceToken en la colección del cliente
-      const clientPushNotificationRef = db.doc(`Profiles/${currentUser.uid}/NotificationTokens/${deviceToken}`);
-
-      batch.delete(clientPushNotificationRef);
-
-      if (commerceId) {
-        // Se elimina el deviceToken en la colección del comercio donde es dueño
-        const commercePushNotificationRef = db.doc(`Commerces/${commerceId}/NotificationTokens/${deviceToken}`);
-
-        batch.delete(commercePushNotificationRef);
-      }
-
-      // Se elimina el deviceToken en las colecciónes de los comercios donde es empleado
-      workplaces.forEach(workplace => {
-        const workplacePushNotificationRef = db.doc(
-          `Commerces/${workplace.commerceId}/NotificationTokens/${deviceToken}`
-        );
-
-        batch.delete(workplacePushNotificationRef);
-      });
-
-      batch.commit();
+      await axios.delete(`${backendUrl}/api/notifications/tokens/delete/${deviceToken}/`);
     }
   } catch (error) {
     console.error(error);
@@ -228,7 +144,7 @@ export const onEmploymentInvitationConfirm = (notification, accepted) => async d
   const clientId = firebase.auth().currentUser.uid;
 
   try {
-    let commerceNotif = {
+    let commerceNotification = {
       title: `Invitación de Empleo ${accepted ? 'aceptada' : 'rechazada'}`,
       body: `La invitación de empleo que usted envió ha sido ${accepted ? 'aceptada' : 'rechazada'}`
     };
@@ -237,13 +153,9 @@ export const onEmploymentInvitationConfirm = (notification, accepted) => async d
       .doc(`Profiles/${clientId}/Notifications/${notification.id}`)
       .update({ ...(accepted ? { acceptanceDate: new Date() } : { rejectionDate: new Date() }) });
 
-    onCommerceNotificationSend(
-      commerceNotif,
-      notification.sentBy,
-      clientId,
-      notification.employeeId,
-      NOTIFICATION_TYPES.NOTIFICATION
-    );
+    await axios.post(`${backendUrl}/api/notifications/update/${notification.id}/`, { ...(accepted ? { acceptanceDate: localDate() } : { rejectionDate: localDate() }) })
+
+    // onCommerceNotificationSend(commerceNotification, notification.sentBy, clientId, notification.employeeId, NOTIFICATION_TYPES.NOTIFICATION);
   } catch (e) {
     console.error(e);
   }

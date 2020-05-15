@@ -29,8 +29,7 @@ export const onClientReservationsListRead = () => dispatch => {
 export const onClientReservationCancel = ({ reservationId, commerceId, navigation, notification }) => {
   axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'canceled', cancellationDate: localDate() })
     .then(() => {
-      // onCommerceNotificationSend(notification, commerceId, notification.employeeId, currentUser.uid, NOTIFICATION_TYPES.NOTIFICATION);
-
+      onCommerceNotificationSend(notification, commerceId, notification.employeeId, NOTIFICATION_TYPES.NOTIFICATION);
       dispatch({ type: ON_CLIENT_RESERVATION_CANCEL });
       navigation.goBack();
     })

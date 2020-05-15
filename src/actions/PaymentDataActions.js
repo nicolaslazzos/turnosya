@@ -1,5 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
+import axios from 'axios';
+import { localDate } from '../utils';
 import {
   ON_PAYMENT_READ,
   ON_PAYMENT_READING,
@@ -9,63 +11,20 @@ import {
   ON_CASH_PAYMENT_REGISTER_FAIL
 } from '../actions/types';
 
-export const onReservationPaymentRead = reservation => dispatch => {
-  dispatch({ type: ON_PAYMENT_READING });
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
 
-  const db = firebase.firestore();
-  const { commerceId, paymentId } = reservation;
-
-  db.collection(`Commerces/${commerceId}/Payments`)
-    .doc(paymentId)
-    .get()
-    .then(snapshot => {
-      dispatch({ type: ON_PAYMENT_READ, payload: snapshot.data() });
-    })
-    .catch(() => dispatch({ type: ON_PAYMENT_READ_FAIL }));
-};
-
-export const onCashPaymentCreate = (reservation, receiptNumber, navigation) => dispatch => {
+export const onCashPaymentCreate = ({ reservationId, receiptNumber, navigation }) => async dispatch => {
   dispatch({ type: ON_CASH_PAYMENT_REGISTERING });
 
-  const db = firebase.firestore();
-  const batch = db.batch();
-  const { commerceId, clientId, id: reservationId } = reservation;
+  try {
+    const payment = await axios.post(`${backendUrl}/api/payments/create/`, { paymentMethodId: 'cash', receiptNumber, paymentDate: localDate() });
+    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'paid', paymentId: payment.data.id });
 
-  db.doc('ReservationStates/paid')
-    .get()
-    .then(state => {
-      const stateObject = { id: state.id, name: state.data().name };
-
-      const paymentRef = db.collection(`Commerces/${commerceId}/Payments`).doc();
-      batch.set(paymentRef, {
-        clientId,
-        reservationId,
-        receiptNumber,
-        date: new Date(),
-        method: 'Efectivo'
-      });
-
-      const commerceReservationRef = db.collection(`Commerces/${commerceId}/Reservations`).doc(reservationId);
-      batch.update(commerceReservationRef, { paymentId: paymentRef.id, state: stateObject });
-
-      if (clientId) {
-        const clientReservationRef = db.collection(`Profiles/${clientId}/Reservations`).doc(reservationId);
-        batch.update(clientReservationRef, { paymentId: paymentRef.id, state: stateObject });
-      }
-
-      batch
-        .commit()
-        .then(() => {
-          dispatch({ type: ON_CASH_PAYMENT_REGISTERED });
-          navigation.goBack();
-        })
-        .catch(() => {
-          dispatch({ type: ON_CASH_PAYMENT_REGISTER_FAIL });
-          navigation.goBack();
-        });
-    })
-    .catch(() => {
-      dispatch({ type: ON_CASH_PAYMENT_REGISTER_FAIL });
-      navigation.goBack();
-    });
+    dispatch({ type: ON_CASH_PAYMENT_REGISTERED });
+    navigation.goBack();
+  } catch (error) {
+    console.error(error);
+    dispatch({ type: ON_CASH_PAYMENT_REGISTER_FAIL });
+  }
 };

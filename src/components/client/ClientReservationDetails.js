@@ -21,14 +21,13 @@ import {
 import {
   onClientReservationCancel,
   onScheduleRead,
-  onCommerceReviewCreate,
-  onCommerceReviewReadById,
-  onCommerceReviewUpdate,
-  onCommerceReviewDelete,
+  onClientReviewCreate,
+  onClientReviewUpdate,
+  onClientReviewDelete,
+  onClientReviewValueChange,
   onCommerceReviewValueChange,
   onCommerceReviewValuesReset,
   onClientReviewValuesReset,
-  onClientReviewReadById,
   onCommerceMPagoTokenRead
 } from '../../actions';
 
@@ -57,15 +56,15 @@ class ClientReservationDetails extends Component {
       employeeId: this.state.reservation.employeeId || null
     });
 
-    // this.props.onCommerceReviewReadById({
-    //   commerceId: this.state.reservation.commerceId,
-    //   reviewId: this.state.reservation.reviewId
-    // });
+    if (this.state.reservation.clientReview) {
+      const { comment, rating } = this.state.reservation.clientReview;
+      this.props.onClientReviewValueChange({ comment, rating })
+    }
 
-    // this.props.onClientReviewReadById({
-    //   clientId: this.props.clientId,
-    //   reviewId: this.state.reservation.receivedReviewId
-    // });
+    if (this.state.reservation.commerceReview) {
+      const { comment, rating } = this.state.reservation.commerceReview;
+      this.props.onCommerceReviewValueChange({ comment, rating })
+    }
 
     // this.props.onCommerceMPagoTokenRead(this.state.reservation.commerceId);
   }
@@ -89,16 +88,16 @@ class ClientReservationDetails extends Component {
   onCancelButtonPress = () => {
     const { reservationMinCancelTime } = this.props;
     const { startDate } = this.state.reservation;
+
     if (startDate.diff(moment(), 'hours', 'minutes') > reservationMinCancelTime)
       this.setState({ optionsVisible: true });
     else
-      Toast.show({
-        text: 'No puede cancelar el turno, el tiempo mínimo permitido es ' + stringFormatHours(reservationMinCancelTime)
-      });
+      Toast.show({ text: 'No puede cancelar el turno, el tiempo mínimo permitido es ' + stringFormatHours(reservationMinCancelTime) });
   };
 
   renderCancelButton = () => {
     const { startDate } = this.state.reservation;
+
     if (startDate > moment()) {
       return (
         <CardSection style={{ paddingTop: 0 }}>
@@ -111,37 +110,35 @@ class ClientReservationDetails extends Component {
   // ** Commerce Review methods **
 
   onSaveReviewHandler = () => {
-    if (this.props.commerceRating === 0) {
+    if (this.props.clientRating === 0) {
       Toast.show({ text: 'Debe primero especificar una calificación.' });
     } else {
       if (this.props.commerceReviewId) {
         // Si tenia calificacion actualizarla
-        this.props.onCommerceReviewUpdate({
-          commerceId: this.state.reservation.commerceId,
-          comment: this.props.commerceComment,
-          rating: this.props.commerceRating,
-          reviewId: this.props.commerceReviewId
+        this.props.onClientReviewUpdate({
+          reviewId: this.state.reservation.clientReview.id,
+          comment: this.props.clientComment,
+          rating: this.props.clientRating,
         });
       } else {
         // Si la reserva no tiene calificacion, crearla
-        this.props.onCommerceReviewCreate({
-          commerceId: this.state.reservation.commerceId,
-          comment: this.props.commerceComment,
-          rating: this.props.commerceRating,
-          reservationId: this.state.reservation.id
+        this.props.onClientReviewCreate({
+          commerceId: this.state.reservation.commerce.commerceId,
+          reservationId: this.state.reservation.id,
+          comment: this.props.clientComment,
+          rating: this.props.clientRating,
         });
       }
     }
   };
 
   onCancelReservationButtonPress = () => {
-    const { startDate, id, commerce, commerceId, employeeId, court, service } = this.state.reservation;
-    const { firstName, lastName } = this.props;
+    const { startDate, id, commerce, commerceId, employee, court, service, client } = this.state.reservation;
 
     const notification = cancelReservationNotificationFormat({
       startDate,
       service: court ? `${court.name}` : `${service.name}`,
-      actorName: `${firstName} ${lastName}`,
+      actorName: `${client.firstName} ${client.lastName}`,
       receptorName: `${commerce.name}`
     });
 
@@ -149,21 +146,18 @@ class ClientReservationDetails extends Component {
       reservationId: id,
       commerceId,
       navigation: this.props.navigation,
-      notification: { ...notification, employeeId }
+      notification: { ...notification, employeeId: employee.id }
     });
 
     this.setState({ optionsVisible: false });
   };
 
   deleteReview = () => {
-    this.setState({
-      confirmDeleteVisible: false,
-      reservation: { ...this.state.reservation, reviewId: null }
-    });
-    this.props.onCommerceReviewDelete({
-      commerceId: this.state.reservation.commerceId,
+    this.setState({ confirmDeleteVisible: false, reservation: { ...this.state.reservation, clientReview: null } });
+
+    this.props.onClientReviewDelete({
       reservationId: this.state.reservation.id,
-      reviewId: this.props.commerceReviewId
+      reviewId: this.state.reservation.clientReview.id
     });
   };
 
@@ -189,7 +183,7 @@ class ClientReservationDetails extends Component {
           outerContainerStyle={{ flex: 1 }}
           onPress={() => this.setState({ confirmDeleteVisible: true })}
           loading={this.props.deleteReviewLoading}
-          disabled={this.state.isOneWeekOld || !this.props.commerceReviewId}
+          disabled={this.state.isOneWeekOld || !this.state.reservation.clientReview}
         />
         <Button
           title="Guardar"
@@ -202,26 +196,23 @@ class ClientReservationDetails extends Component {
     );
   };
 
-  renderCommerceReview = () => {
-    const title =
-      this.state.isOneWeekOld && !this.props.commerceRating
-        ? 'Ya pasó el período de calificación'
-        : 'Calificación de la atención';
+  renderClientReview = () => {
+    const title = this.state.isOneWeekOld && !this.props.clientRating ? 'Ya pasó el período de calificación' : 'Calificación de la atención';
 
-    return this.state.isOneWeekOld && !this.props.commerceReviewId ? (
+    return this.state.isOneWeekOld && !this.state.reservation.clientReview ? (
       <View style={{ paddingVertical: 10 }}>
         <ReviewCard title="Ya pasó el período de calificación" />
       </View>
-    ) : this.state.reservation.paymentId ? (
+    ) : this.state.reservation.payment ? (
       <View style={{ paddingVertical: 10 }}>
         <ReviewCard
           title={title}
-          onFinishRating={rating => this.props.onCommerceReviewValueChange({ rating })}
-          rating={this.props.commerceRating}
+          onFinishRating={rating => this.props.onClientReviewValueChange({ rating })}
+          rating={this.props.clientRating}
           readOnly={this.state.isOneWeekOld}
-          onChangeText={comment => this.props.onCommerceReviewValueChange({ comment })}
+          onChangeText={comment => this.props.onClientReviewValueChange({ comment })}
           commentPlaceholder="Deje un comentario sobre la atención..."
-          commentText={this.props.commerceComment}
+          commentText={this.props.clientComment}
           fieldsVisible
         />
         {this.renderReviewButtons()}
@@ -233,14 +224,14 @@ class ClientReservationDetails extends Component {
         );
   };
 
-  renderClientReview = () => {
-    return this.props.clientRating ? (
+  renderCommerceReview = () => {
+    return this.props.commerceRating ? (
       <View style={{ paddingVertical: 10 }}>
         <ReviewCard
           title="Calificación realizada por el negocio"
-          rating={this.props.clientRating}
+          rating={this.props.commerceRating}
           commentPlaceholder="El negocio no realizó ningún comentario..."
-          commentText={this.props.clientComment}
+          commentText={this.props.commerceComment}
           readOnly
           fieldsVisible
         />
@@ -269,7 +260,7 @@ class ClientReservationDetails extends Component {
             selectedIndex={this.state.reviewBGIndex}
             buttons={['Calificar al negocio', 'Ver su calificación']}
           />
-          {this.state.reviewBGIndex === 0 ? this.renderCommerceReview() : this.renderClientReview()}
+          {this.state.reviewBGIndex === 0 ? this.renderClientReview() : this.renderCommerceReview()}
           {this.renderConfirmReviewDelete()}
         </CardSection>
       );
@@ -279,15 +270,11 @@ class ClientReservationDetails extends Component {
   // ** Payment buttons **
 
   renderPayButton = () => {
-    return this.state.reservation.paymentId ? (
+    return this.state.reservation.payment ? (
       <CardSection>
         <Button
           title="Ver detalle del pago"
-          onPress={() =>
-            this.props.navigation.navigate('paymentDetails', {
-              reservation: this.state.reservation
-            })
-          }
+          onPress={() => this.props.navigation.navigate('paymentDetails', { reservation: this.state.reservation })}
         />
       </CardSection>
     ) : this.props.mPagoToken ? (
@@ -316,15 +303,14 @@ class ClientReservationDetails extends Component {
   // ** Render method **
 
   render() {
-    const { areaId, commerce, service, employee, court, endDate, startDate, light, price } = this.state.reservation;
+    const { areaId, commerce, service, employee, court, endDate, startDate, price } = this.state.reservation;
 
     if (this.props.loadingSchedule) return <Spinner />;
 
     return (
       <KeyboardAwareScrollView enableOnAndroid contentContainerStyle={scrollViewStyle} extraScrollHeight={60}>
         <Menu
-          title={"¿Está seguro que desea cancelar el turno? Tenga en cuenta que si ya realizó el pago mediante MercadoPago,"
-            + " el dinero no le será devuelto"}
+          title={"¿Está seguro que desea cancelar el turno? Tenga en cuenta que si ya realizó el pago mediante MercadoPago, el dinero no le será devuelto"}
           onBackdropPress={() => this.setState({ optionsVisible: false })}
           isVisible={this.state.optionsVisible || this.props.loadingReservations}
         >
@@ -351,7 +337,6 @@ class ClientReservationDetails extends Component {
               startDate={startDate}
               endDate={endDate}
               price={price}
-              light={light}
             />
           }
           hairdressers={
@@ -399,8 +384,7 @@ const mapStateToProps = state => {
   const { reservations } = state.clientReservationsList;
   const loadingReservations = state.clientReservationsList.loading;
   const { reservationMinCancelTime, loadingSchedule } = state.commerceSchedule;
-  const { saveLoading, deleteLoading } = state.commerceReviewData;
-  const { clientId, firstName, lastName } = state.clientData;
+  const { saveLoading, deleteLoading } = state.clientReviewData;
   const { mPagoToken } = state.commerceData;
 
   return {
@@ -415,9 +399,6 @@ const mapStateToProps = state => {
     commerceReviewId: state.commerceReviewData.reviewId,
     clientRating: state.clientReviewData.rating,
     clientComment: state.clientReviewData.comment,
-    clientId,
-    firstName,
-    lastName,
     mPagoToken
   };
 };
@@ -425,13 +406,12 @@ const mapStateToProps = state => {
 export default connect(mapStateToProps, {
   onClientReservationCancel,
   onScheduleRead,
-  onCommerceReviewCreate,
-  onCommerceReviewReadById,
-  onCommerceReviewUpdate,
-  onCommerceReviewDelete,
+  onClientReviewCreate,
+  onClientReviewUpdate,
+  onClientReviewDelete,
+  onClientReviewValueChange,
   onCommerceReviewValueChange,
   onCommerceReviewValuesReset,
   onClientReviewValuesReset,
-  onClientReviewReadById,
   onCommerceMPagoTokenRead
 })(ClientReservationDetails);

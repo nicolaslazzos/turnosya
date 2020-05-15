@@ -20,13 +20,11 @@ import ServiceReservationDetails from '../ServiceReservationDetails';
 import {
   onCommerceReservationCancel,
   onReservationsListValueChange,
-  onClientReviewValueChange,
-  onClientReviewCreate,
-  onClientReviewReadById,
-  onClientReviewUpdate,
-  onClientReviewDelete,
+  onCommerceReviewValueChange,
+  onCommerceReviewCreate,
+  onCommerceReviewUpdate,
+  onCommerceReviewDelete,
   onClientReviewValuesReset,
-  onCommerceReviewReadById,
   onCommerceReviewValuesReset,
   onCashPaymentCreate,
   onCommercePaymentRefund
@@ -53,34 +51,23 @@ class CommerceReservationDetails extends Component {
   }
 
   componentDidMount() {
-    this.props.onClientReviewReadById({
-      clientId: this.state.reservation.clientId,
-      reviewId: this.state.reservation.reviewId
-    });
+    if (this.state.reservation.clientReview) {
+      const { comment, rating } = this.state.reservation.clientReview;
+      this.props.onClientReviewValueChange({ comment, rating });
+    }
 
-    this.props.onCommerceReviewReadById({
-      commerceId: this.props.commerceId,
-      reviewId: this.state.reservation.receivedReviewId
-    });
-
-    if (!this.state.reservation.commerceId)
-      this.setState({
-        reservation: {
-          ...this.state.reservation,
-          commerceId: this.props.commerceId
-        }
-      });
+    if (this.state.reservation.commerceReview) {
+      const { comment, rating } = this.state.reservation.commerceReview;
+      this.props.onCommerceReviewValueChange({ comment, rating });
+    }
   }
 
   componentDidUpdate(prevProps) {
     if (prevProps.reservations !== this.props.reservations) {
-      let res = this.props.reservations.find(res => res.id === this.state.reservation.id);
+      const res = this.props.reservations.find(res => res.id === this.state.reservation.id);
 
-      if (res) {
-        res = { ...res, commerceId: this.props.commerceId, court: this.state.reservation.court, service: this.state.reservation.service };
-
-        if (JSON.stringify(res) !== JSON.stringify(this.state.reservation)) this.setState({ reservation: res });
-      }
+      if (res && JSON.stringify(res) !== JSON.stringify(this.state.reservation))
+        this.setState({ reservation: res });
     }
   }
 
@@ -92,10 +79,7 @@ class CommerceReservationDetails extends Component {
   renderPaymentRefundModal = () => {
     return (
       <Menu
-        title={
-          '¿Está seguro que desea cancelar la reserva? Tenga en cuenta que si el pago del cliente fue ' +
-          'realizado desde Mercado Pago el dinero le será devuelto automáticamente.'
-        }
+        title={'¿Está seguro que desea cancelar la reserva? Tenga en cuenta que si el pago del cliente fue realizado desde Mercado Pago el dinero le será devuelto automáticamente.'}
         onBackdropPress={() => this.setState({ paymentRefundVisible: false })}
         isVisible={this.state.paymentRefundVisible}
       >
@@ -116,11 +100,7 @@ class CommerceReservationDetails extends Component {
         <CardSection style={{ paddingTop: 0 }}>
           <Button
             title="Cancelar Reserva"
-            onPress={() =>
-              this.state.reservation.paymentId
-                ? this.setState({ paymentRefundVisible: true })
-                : this.setState({ optionsVisible: true })
-            }
+            onPress={() => this.state.reservation.payment ? this.setState({ paymentRefundVisible: true }) : this.setState({ optionsVisible: true })}
           />
         </CardSection>
       );
@@ -141,9 +121,7 @@ class CommerceReservationDetails extends Component {
   };
 
   onCancelReservationPress = () => {
-    this.state.reservation.paymentId
-      ? this.setState({ paymentRefundVisible: true })
-      : this.setState({ optionsVisible: true });
+    this.state.reservation.paymentId ? this.setState({ paymentRefundVisible: true }) : this.setState({ optionsVisible: true });
   };
 
   onBackdropPress = () => {
@@ -153,10 +131,10 @@ class CommerceReservationDetails extends Component {
 
   onConfirmDelete = () => {
     if (this.renderCancellationReasonError()) {
-      const { id, clientId, client, court, service, paymentId } = this.state.reservation;
+      const { id, client, court, service, payment, commerce } = this.state.reservation;
       let notification = null;
 
-      if (clientId)
+      if (client)
         notification = cancelReservationNotificationFormat({
           startDate: this.state.reservation.startDate,
           service: court ? `${court.name}` : `${service.name}`,
@@ -165,17 +143,12 @@ class CommerceReservationDetails extends Component {
           cancellationReason: this.props.cancellationReason
         });
 
-      if (paymentId)
-        this.props.onCommercePaymentRefund({
-          commerceId: this.props.commerceId,
-          mPagoToken: this.props.mPagoToken,
-          paymentId
-        });
+      if (payment) this.props.onCommercePaymentRefund({ payment });
 
       this.props.onCommerceReservationCancel({
-        commerceId: this.props.commerceId,
+        commerceId: commerce.commerceId,
         reservationId: id,
-        clientId,
+        clientId: client.profileId,
         cancellationReason: this.props.cancellationReason,
         navigation: this.props.navigation,
         notification
@@ -188,37 +161,34 @@ class CommerceReservationDetails extends Component {
   // *** Review Methods ***
 
   onSaveReviewHandler = () => {
-    if (this.props.clientRating === 0) {
+    if (this.props.commerceRating === 0) {
       Toast.show({ text: 'Debe primero especificar una calificación.' });
     } else {
-      if (this.props.clientReviewId) {
+      if (this.state.reservation.commerceReview) {
         // Si tenia calificación actualizarla
-        this.props.onClientReviewUpdate({
-          clientId: this.state.reservation.clientId,
-          comment: this.props.clientComment,
-          rating: this.props.clientRating,
-          reviewId: this.props.clientReviewId
+        this.props.onCommerceReviewUpdate({
+          reviewId: this.state.reservation.commerceReview.id,
+          comment: this.props.commerceComment,
+          rating: this.props.commerceRating,
         });
       } else {
         // Si la reserva no tiene calificación, crearla
-        this.props.onClientReviewCreate({
-          clientId: this.state.reservation.clientId,
-          comment: this.props.clientComment,
-          rating: this.props.clientRating,
+        this.props.onCommerceReviewCreate({
+          clientId: this.state.reservation.client.profileId,
           reservationId: this.state.reservation.id,
-          commerceId: this.props.commerceId
+          comment: this.props.commerceComment,
+          rating: this.props.commerceRating,
         });
       }
     }
   };
 
   onDeleteReviewHandler = () => {
-    this.props.onClientReviewDelete({
-      clientId: this.state.reservation.clientId,
-      reviewId: this.props.clientReviewId,
+    this.props.onCommerceReviewDelete({
+      reviewId: this.state.reservation.commerceReview.id,
       reservationId: this.state.reservation.id,
-      commerceId: this.props.commerceId
     });
+
     this.setState({ confirmDeleteVisible: false });
   };
 
@@ -244,7 +214,7 @@ class CommerceReservationDetails extends Component {
           outerContainerStyle={{ flex: 1 }}
           onPress={() => this.setState({ confirmDeleteVisible: true })}
           loading={this.props.deleteReviewLoading}
-          disabled={this.state.isOneWeekOld || !this.props.clientReviewId}
+          disabled={this.state.isOneWeekOld || !this.state.reservation.commerceReview}
         />
         <Button
           title="Guardar"
@@ -257,14 +227,14 @@ class CommerceReservationDetails extends Component {
     );
   };
 
-  renderCommerceReview = () => {
-    return this.props.commerceRating ? (
+  renderClientReview = () => {
+    return this.props.clientRating ? (
       <View style={{ paddingVertical: 10 }}>
         <ReviewCard
           title="Calificación realizada por el cliente"
-          rating={this.props.commerceRating}
+          rating={this.props.clientRating}
           commentPlaceholder="El cliente no realizó ningún comentario..."
-          commentText={this.props.commerceComment}
+          commentText={this.props.clientComment}
           readOnly
           fieldsVisible
         />
@@ -276,13 +246,10 @@ class CommerceReservationDetails extends Component {
       );
   };
 
-  renderClientReview = () => {
-    const title =
-      this.state.isOneWeekOld && !this.props.clientRating
-        ? 'Ya pasó el período de calificación'
-        : 'Calificación de la atención';
+  renderCommerceReview = () => {
+    const title = this.state.isOneWeekOld && !this.props.commerceRating ? 'Ya pasó el período de calificación' : 'Calificación de la atención';
 
-    return this.state.isOneWeekOld && !this.props.clientReviewId ? (
+    return this.state.isOneWeekOld && !this.state.reservation.commerceReview ? (
       <View style={{ paddingVertical: 10 }}>
         <ReviewCard title="Ya pasó el período de calificación" />
       </View>
@@ -290,12 +257,12 @@ class CommerceReservationDetails extends Component {
         <View style={{ paddingVertical: 10 }}>
           <ReviewCard
             title={title}
-            onFinishRating={rating => this.props.onClientReviewValueChange({ rating })}
-            rating={this.props.clientRating}
+            onFinishRating={rating => this.props.onCommerceReviewValueChange({ rating })}
+            rating={this.props.commerceRating}
             readOnly={this.state.isOneWeekOld}
-            onChangeText={comment => this.props.onClientReviewValueChange({ comment })}
+            onChangeText={comment => this.props.onCommerceReviewValueChange({ comment })}
             commentPlaceholder="Comente sobre el cliente..."
-            commentText={this.props.clientComment}
+            commentText={this.props.commerceComment}
             fieldsVisible
           />
           {this.renderReviewButtons()}
@@ -304,7 +271,7 @@ class CommerceReservationDetails extends Component {
   };
 
   renderReviewFields = () => {
-    if (this.state.reservation.clientId && this.state.reservation.startDate < moment()) {
+    if (this.state.reservation.client && this.state.reservation.startDate < moment()) {
       return (
         <CardSection style={{ flex: 1 }}>
           <Divider
@@ -320,7 +287,7 @@ class CommerceReservationDetails extends Component {
             selectedIndex={this.state.reviewBGIndex}
             buttons={['Calificar al cliente', 'Ver su calificación']}
           />
-          {this.state.reviewBGIndex === 0 ? this.renderClientReview() : this.renderCommerceReview()}
+          {this.state.reviewBGIndex === 0 ? this.renderCommerceReview() : this.renderClientReview()}
           {this.renderConfirmReviewDelete()}
         </CardSection>
       );
@@ -328,8 +295,8 @@ class CommerceReservationDetails extends Component {
   };
 
   onUserProfilePicturePress = () => {
-    const { clientId } = this.state.reservation;
-    this.props.navigation.navigate('clientProfileView', { clientId });
+    const { client } = this.state.reservation;
+    this.props.navigation.navigate('clientProfileView', { clientId: client.profileId });
   };
 
   // *** Payment methods ***
@@ -358,7 +325,7 @@ class CommerceReservationDetails extends Component {
           icon="md-checkmark"
           loadingWithText={this.props.cashPayRegisterLoading}
           onPress={() => {
-            this.props.onCashPaymentCreate(this.state.reservation, this.state.receiptNumber, this.props.navigation);
+            this.props.onCashPaymentCreate({ reservationId: this.state.reservation.id, receiptNumber: this.state.receiptNumber, navigation: this.props.navigation });
             this.setState({ confirmCashPayVisible: false });
           }}
         />
@@ -372,14 +339,10 @@ class CommerceReservationDetails extends Component {
     return (
       <CardSection>
         {this.renderRegisterPaymentConfirmation()}
-        {this.state.reservation.paymentId ? (
+        {this.state.reservation.payment ? (
           <Button
             title="Ver detalle del pago"
-            onPress={() =>
-              this.props.navigation.navigate('paymentDetails', {
-                reservation: this.state.reservation
-              })
-            }
+            onPress={() => this.props.navigation.navigate('paymentDetails', { reservation: this.state.reservation })}
           />
         ) : (
             <Button title="Registrar pago en efectivo" onPress={() => this.setState({ confirmCashPayVisible: true })} />
@@ -392,17 +355,15 @@ class CommerceReservationDetails extends Component {
 
   render() {
     const {
-      areaId,
-      clientId,
+      commerce,
+      client,
       clientName,
       clientPhone,
-      client,
       court,
       service,
       startDate,
       endDate,
       price,
-      light
     } = this.state.reservation;
 
     return (
@@ -439,29 +400,28 @@ class CommerceReservationDetails extends Component {
         {this.renderPaymentRefundModal()}
 
         <AreaComponentRenderer
-          area={areaId}
+          area={commerce.area.areaId}
           sports={
             <CourtReservationDetails
-              mode={clientId && 'client'}
-              name={clientId ? `${client.firstName} ${client.lastName}` : clientName}
-              info={clientId ? client.phone : clientPhone}
+              mode={client && 'client'}
+              name={client ? `${client.firstName} ${client.lastName}` : clientName}
+              info={client ? client.phone : clientPhone}
               infoIcon="ios-call"
-              picture={clientId && client.profilePicture}
+              picture={client && client.profilePicture}
               court={court}
               startDate={startDate}
               endDate={endDate}
               price={price}
-              light={light}
               onPicturePress={this.onUserProfilePicturePress}
             />
           }
           hairdressers={
             <ServiceReservationDetails
-              mode={clientId && 'client'}
-              name={clientId ? `${client.firstName} ${client.lastName}` : clientName}
-              info={clientId ? client.phone : clientPhone}
+              mode={client && 'client'}
+              name={client ? `${client.firstName} ${client.lastName}` : clientName}
+              info={client ? client.phone : clientPhone}
               infoIcon="ios-call"
-              picture={clientId && client.profilePicture}
+              picture={client && client.profilePicture}
               service={service}
               startDate={startDate}
               endDate={endDate}
@@ -499,7 +459,7 @@ const { overlayDividerStyle, scrollViewStyle, buttonsContainer } = StyleSheet.cr
 const mapStateToProps = state => {
   const { cancellationLoading, cancellationReason, reservations } = state.reservationsList;
   const { commerceId, name, mPagoToken } = state.commerceData;
-  const { saveLoading, deleteLoading, dataLoading } = state.clientReviewData;
+  const { saveLoading, deleteLoading, dataLoading } = state.commerceReviewData;
   const { cashPayRegisterLoading } = state.paymentData;
 
   return {
@@ -524,13 +484,11 @@ const mapStateToProps = state => {
 export default connect(mapStateToProps, {
   onCommerceReservationCancel,
   onReservationsListValueChange,
-  onClientReviewValueChange,
-  onClientReviewCreate,
-  onClientReviewReadById,
-  onClientReviewUpdate,
-  onClientReviewDelete,
+  onCommerceReviewValueChange,
+  onCommerceReviewCreate,
+  onCommerceReviewUpdate,
+  onCommerceReviewDelete,
   onClientReviewValuesReset,
-  onCommerceReviewReadById,
   onCommerceReviewValuesReset,
   onCashPaymentCreate,
   onCommercePaymentRefund

@@ -55,7 +55,7 @@ export const onClientReservationCreate = ({ commerceId, employeeId, courtId, ser
       price: parseFloat(price)
     });
 
-    // onCommerceNotificationSend(notification, commerceId, employeeId, currentUser.uid, NOTIFICATION_TYPES.NOTIFICATION);
+    onCommerceNotificationSend(notification, commerceId, employeeId, NOTIFICATION_TYPES.NOTIFICATION);
 
     dispatch({ type: ON_RESERVATION_CREATE });
   } catch (error) {
@@ -151,7 +151,7 @@ export const onCommerceServiceReservationCreate = ({
     });
 
     if (notification)
-      onCommerceNotificationSend(notification, commerceId, employeeId, null, NOTIFICATION_TYPES.NOTIFICATION);
+      onCommerceNotificationSend(notification, commerceId, employeeId, NOTIFICATION_TYPES.NOTIFICATION);
 
     dispatch({ type: ON_RESERVATION_CREATE });
   } catch (error) {

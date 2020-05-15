@@ -24,13 +24,13 @@ export const onCommerceReviewValueChange = payload => {
   return { type: ON_COMMERCE_REVIEW_VALUE_CHANGE, payload };
 };
 
-export const onCommerceReviewCreate = ({ commerceId, rating, comment, reservationId }) => async dispatch => {
+export const onCommerceReviewCreate = ({ clientId, rating, comment, reservationId }) => async dispatch => {
   // review del cliente al negocio
   dispatch({ type: ON_COMMERCE_REVIEW_SAVING });
 
   try {
-    const review = await axios.post(`${backendUrl}/api/reviews/create/`, { commerceId, rating, comment, reviewDate: localDate() });
-    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { clientReviewId: review.data.id });
+    const review = await axios.post(`${backendUrl}/api/reviews/create/`, { clientId, rating, comment, reviewDate: localDate() });
+    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: review.data.id });
     // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
 
     dispatch({ type: ON_COMMERCE_REVIEW_CREATED, payload: review.data.id });
@@ -40,14 +40,7 @@ export const onCommerceReviewCreate = ({ commerceId, rating, comment, reservatio
   }
 };
 
-export const onCommerceReviewReadById = ({ commerceId, reviewId }) => dispatch => {
-  // review del cliente al negocio
-  axios.get(`${backendUrl}/api/reviews/${reviewId}/`)
-    .then(response => dispatch({ type: ON_COMMERCE_REVIEW_READ, payload: { ...response.data, reviewId: response.data.id } }))
-    .catch(() => dispatch({ type: ON_COMMERCE_REVIEW_READ_FAIL }));
-};
-
-export const onCommerceReviewUpdate = ({ commerceId, rating, comment, reviewId }) => async dispatch => {
+export const onCommerceReviewUpdate = ({ reviewId, rating, comment }) => async dispatch => {
   dispatch({ type: ON_COMMERCE_REVIEW_SAVING });
 
   // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
@@ -60,12 +53,12 @@ export const onCommerceReviewUpdate = ({ commerceId, rating, comment, reviewId }
     });
 };
 
-export const onCommerceReviewDelete = ({ commerceId, reservationId, reviewId }) => async dispatch => {
+export const onCommerceReviewDelete = ({ reservationId, reviewId }) => async dispatch => {
   dispatch({ type: ON_COMMERCE_REVIEW_DELETING });
 
   try {
     await axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { softDelete: localDate() });
-    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { clientReviewId: null });
+    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: null });
     // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
 
     dispatch({ type: ON_COMMERCE_REVIEW_DELETED });

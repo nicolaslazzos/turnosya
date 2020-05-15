@@ -45,7 +45,7 @@ class CourtReservationDetails extends Component {
   };
 
   render() {
-    const { picture, court, startDate, endDate, light } = this.props;
+    const { picture, court, startDate, endDate } = this.props;
 
     return (
       <View style={styles.mainContainer}>
@@ -67,7 +67,7 @@ class CourtReservationDetails extends Component {
             <Text style={styles.regularText}>{`${court.courtType.name} - ${court.groundType.name}`}</Text>
           </CardSection>
           <CardSection style={styles.cardSections}>
-            <Text style={styles.regularText}>{light ? 'Con Luz' : 'Sin Luz'}</Text>
+            <Text style={styles.regularText}>{court.lightHour && startDate.format('HH:mm') >= court.lightHour ? 'Con Luz' : 'Sin Luz'}</Text>
           </CardSection>
           <Divider style={styles.divider} />
           <CardSection style={[styles.cardSections, { paddingBottom: 0 }]}>

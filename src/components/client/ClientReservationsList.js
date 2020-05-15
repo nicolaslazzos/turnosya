@@ -46,7 +46,7 @@ class ClientReservationsList extends Component {
   };
 
   renderRow = ({ item }) => {
-    const { commerce, startDate, endDate, price, reviewId, paymentId } = item;
+    const { commerce, startDate, endDate, price, clientReview, payment } = item;
 
     return (
       <ListItem
@@ -56,9 +56,9 @@ class ClientReservationsList extends Component {
         rightTitleStyle={styles.listItemRightTitleStyle}
         rightSubtitle={
           <View style={{ alignItems: 'flex-end' }}>
-            {item.paymentId ? <Badge value='Pagado' color={SUCCESS_COLOR} /> : null}
+            {payment ? <Badge value='Pagado' color={SUCCESS_COLOR} /> : null}
             {
-              endDate < moment() && !isOneWeekOld(endDate) && !reviewId && paymentId ?
+              endDate < moment() && !isOneWeekOld(endDate) && !clientReview && payment ?
                 <Text style={styles.listItemRightSubtitleStyle}>¡Calificá el servicio!</Text> : null
             }
           </View>

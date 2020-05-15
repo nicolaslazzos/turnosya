@@ -6,38 +6,24 @@ import { onReservationValueChange, isCourtDisabledOnSlot, onNewReservation } fro
 import CommerceCourtsStateListItem from './CommerceCourtsStateListItem';
 
 class CommerceCourtsStateList extends Component {
-  state = {
-    selectedReservation: {},
-    selectedCourt: {}
-  };
-
   static navigationOptions = ({ navigation }) => ({
     title: navigation.getParam('title')
   });
 
   courtReservation = court => {
     const { reservations, startDate } = this.props;
-
-    return reservations.find(reservation => {
-      return reservation.startDate.toString() === startDate.toString() && reservation.courtId === court.id;
-    });
+    return reservations.find(reservation => reservation.startDate.toString() === startDate.toString() && reservation.court.id === court.id);
   };
 
-  onReservedCourtPress = (court, courtReservation) => {
-    let reservation = {
-      ...courtReservation,
-      court: { ...court }
-    };
-
-    this.props.navigation.navigate('reservationDetails', {
-      reservation
-    });
+  onReservedCourtPress = courtReservation => {
+    this.props.navigation.navigate('reservationDetails', { reservation: courtReservation });
   };
 
   onAvailableCourtPress = court => {
     this.props.onNewReservation();
 
     const light = !!(court.lightPrice && court.lightHour && court.lightHour <= this.props.startDate.format('HH:mm'));
+
     this.props.onReservationValueChange({
       court,
       light,
@@ -49,12 +35,11 @@ class CommerceCourtsStateList extends Component {
 
   isCourtTypeSelected = courtType => {
     const selectedCourtTypes = this.props.navigation.getParam('selectedCourtTypes');
-
     return selectedCourtTypes.includes('Todas') || selectedCourtTypes.includes(courtType);
   };
 
   renderRow({ item }) {
-    if (!this.isCourtTypeSelected(item.court)) return;
+    if (!this.isCourtTypeSelected(item.courtType.name)) return;
 
     const { startDate, endDate } = this.props;
     const courtReservation = this.courtReservation(item);
@@ -66,9 +51,7 @@ class CommerceCourtsStateList extends Component {
         navigation={this.props.navigation}
         courtAvailable={!courtReservation}
         disabled={isCourtDisabledOnSlot(item, { startDate, endDate })}
-        onPress={() =>
-          !courtReservation ? this.onAvailableCourtPress(item) : this.onReservedCourtPress(item, courtReservation)
-        }
+        onPress={() => !courtReservation ? this.onAvailableCourtPress(item) : this.onReservedCourtPress(courtReservation)}
       />
     );
   }
@@ -79,7 +62,7 @@ class CommerceCourtsStateList extends Component {
         <FlatList
           data={this.props.courts}
           renderItem={this.renderRow.bind(this)}
-          keyExtractor={court => court.id}
+          keyExtractor={court => court.id.toString()}
           extraData={this.props.reservations}
         />
       );

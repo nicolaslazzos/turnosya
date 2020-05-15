@@ -196,7 +196,7 @@ class NotificationsList extends Component {
           >
             {this.state.selectedNotification &&
               this.state.selectedNotification.notificationType && // cuando se limpien notificaciones viejas se podría sacar
-              this.state.selectedNotification.notificationType.id === NOTIFICATION_TYPES.EMPLOYMENT_INVITE.id &&
+              this.state.selectedNotification.notificationType.id === NOTIFICATION_TYPES.INVITE.id &&
               !this.state.selectedNotification.acceptanceDate &&
               !this.state.selectedNotification.rejectionDate
               ? this.renderEmploymentInvitationOptions()

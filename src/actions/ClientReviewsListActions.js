@@ -26,7 +26,7 @@ const { backendUrl } = getEnvVars();
 //       dispatch({ type: ON_CLIENT_REVIEWS_READ, payload: { reviews, firstRead: !lastVisible } });
 //     })
 //     .catch(() => dispatch({ type: ON_CLIENT_REVIEWS_READ_FAIL }));
-};
+// };
 
 export const onClientReviewsRead = (clientId, lastVisible = null) => dispatch => {
   dispatch({ type: ON_CLIENT_REVIEWS_READING, payload: lastVisible ? 'refreshing' : 'loading' });

@@ -4,7 +4,7 @@ import { ListItem, ButtonGroup } from 'react-native-elements';
 import moment from 'moment';
 import { connect } from 'react-redux';
 import { Calendar, Spinner, EmptyList, AreaComponentRenderer, PermissionsAssigner, Badge } from '../common';
-import { onCommerceReservationsRead } from '../../actions';
+import { onCommerceDetailedReservationsRead } from '../../actions';
 import { MAIN_COLOR, AREAS, ROLES, SUCCESS_COLOR } from '../../constants';
 import EmployeesFilter from './EmployeesFilter';
 
@@ -32,7 +32,7 @@ class CommerceReservationsList extends Component {
   onDateSelected = date => {
     const selectedDate = moment([date.year(), date.month(), date.date()]);
 
-    this.props.onCommerceReservationsRead({
+    this.props.onCommerceDetailedReservationsRead({
       commerceId: this.props.commerceId,
       startDate: selectedDate,
       endDate: moment(selectedDate).add(1, 'days'),
@@ -67,20 +67,7 @@ class CommerceReservationsList extends Component {
   };
 
   renderItem = ({ item }) => {
-    const clientName = item.clientId ? `${item.client.firstName} ${item.client.lastName}` : item.clientName;
-
-    let name;
-    let service;
-    let court;
-
-    if (this.props.areaId === AREAS.hairdressers) {
-      service = this.props.services.find(service => service.id === item.serviceId);
-      name = service.name;
-      // } else if (this.props.areaId === AREAS.sports) { // no anda para reservas viejas que no tenían el areaId
-    } else {
-      court = this.props.courts.find(court => court.id === item.courtId);
-      name = court.name;
-    }
+    const clientName = item.client ? `${item.client.firstName} ${item.client.lastName}` : item.clientName;
 
     return (
       <ListItem
@@ -90,7 +77,7 @@ class CommerceReservationsList extends Component {
           color: 'black'
         }}
         title={`${item.startDate.format('HH:mm')} a ${item.endDate.format('HH:mm')}`}
-        subtitle={`${clientName}\n${name}`}
+        subtitle={`${clientName}\n${item.court.name || item.service.name}`}
         rightTitle={`$${item.price}`}
         rightTitleStyle={styles.listItemRightTitleStyle}
         rightSubtitle={
@@ -98,18 +85,14 @@ class CommerceReservationsList extends Component {
             <AreaComponentRenderer
               sports={
                 <Text style={styles.listItemRightSubtitleStyle}>
-                  {item.light !== undefined ? (item.light ? 'Con Luz' : 'Sin Luz') : null}
+                  {item.court.lightHour && item.court.lightHour <= item.startDate.format('HH:mm') ? 'Con Luz' : 'Sin Luz'}
                 </Text>
               }
             />
-            {item.paymentId ? <Badge value='Pagado' color={SUCCESS_COLOR} /> : null}
+            {item.payment ? <Badge value='Pagado' color={SUCCESS_COLOR} /> : null}
           </View>
         }
-        onPress={() =>
-          this.props.navigation.navigate('reservationDetails', {
-            reservation: { ...item, court, service }
-          })
-        }
+        onPress={() => this.props.navigation.navigate('reservationDetails', { reservation: item })}
         bottomDivider
       />
     );
@@ -184,7 +167,7 @@ class CommerceReservationsList extends Component {
               <FlatList
                 data={filteredLists[this.state.selectedIndex]}
                 renderItem={this.renderItem.bind(this)}
-                keyExtractor={reservation => reservation.id}
+                keyExtractor={reservation => reservation.id.toString()}
               />
               : <EmptyList title="No hay turnos" />
         }
@@ -245,5 +228,5 @@ const mapStateToProps = state => {
 };
 
 export default connect(mapStateToProps, {
-  onCommerceReservationsRead
+  onCommerceDetailedReservationsRead
 })(CommerceReservationsList);

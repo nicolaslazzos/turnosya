@@ -150,24 +150,14 @@ class CommerceProfileView extends Component {
 
             <Button
               type="clear"
-              icon={
-                this.state.favorite ? (
-                  <Icon name="favorite" color={'red'} size={30} />
-                ) : (
-                    <Icon name="favorite-border" color={'white'} size={30} />
-                  )
-              }
+              icon={this.state.favorite ? <Icon name="favorite" color={'red'} size={30} /> : <Icon name="favorite-border" color={'white'} size={30} />}
               onPress={() => this.onFavoritePress(commerceId)}
             />
 
             <Button
               type="clear"
               icon={<Ionicons name="md-text" color={'white'} size={30} />}
-              onPress={() =>
-                this.props.navigation.navigate('commerceReviewsList', {
-                  commerceId: this.props.commerceId
-                })
-              }
+              onPress={() => this.props.navigation.navigate('commerceReviewsList', { commerceId: this.props.commerceId })}
             />
           </View>
 
