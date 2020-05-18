@@ -82,19 +82,11 @@ class CommerceServicesSchedule extends Component {
   };
 
   getReservationFromSlot = slot => {
-    const reservation = this.props.reservations.find(res => res.startDate.toString() === slot.startDate.toString());
-
-    const service = this.props.services.find(service => service.id === reservation.serviceId);
-
-    return { ...reservation, service };
+    return this.props.reservations.find(res => res.startDate.toString() === slot.startDate.toString());
   };
 
   onSlotPress = slot => {
-    if (!slot.available) {
-      return this.props.navigation.navigate('reservationDetails', {
-        reservation: this.getReservationFromSlot(slot)
-      });
-    }
+    if (!slot.available) return this.props.navigation.navigate('reservationDetails', { reservation: this.getReservationFromSlot(slot) });
 
     const startDate = slot.startDate;
 

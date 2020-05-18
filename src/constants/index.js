@@ -45,6 +45,6 @@ export const AREAS = {
 // NOTIFICATION TYPES
 
 export const NOTIFICATION_TYPES = {
-  NOTIFICATION: { id: 'notification', name: 'Notificación' },
-  INVITE: { id: 'invite', name: 'Invitación de Empleo' }
+  NOTIFICATION: 'notification',
+  INVITE: 'invite'
 };

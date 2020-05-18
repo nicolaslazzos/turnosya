@@ -4,14 +4,15 @@ import { ON_EMPLOYEES_READ, ON_EMPLOYEES_READING, ON_EMPLOYEES_READ_FAIL, ON_EMP
 import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
-export const onEmployeeSelect = selectedEmployeeId => {
-  return { type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId } };
-}
+export const onEmployeeSelect = selectedEmployeeId => ({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId } });
 
 export const onEmployeesRead = ({ commerceId, visible, startDate, employeesIds }) => dispatch => {
   dispatch({ type: ON_EMPLOYEES_READING });
 
   axios.get(`${backendUrl}/api/employees/`, { params: { commerceId, visible, startDate, employeesIds: employeesIds ? employeesIds.toString() : null } })
     .then(response => dispatch({ type: ON_EMPLOYEES_READ, payload: response.data }))
-    .catch(error => dispatch({ type: ON_EMPLOYEES_READ_FAIL }));
+    .catch(error => {
+      console.error(error);
+      dispatch({ type: ON_EMPLOYEES_READ_FAIL })
+    });
 };

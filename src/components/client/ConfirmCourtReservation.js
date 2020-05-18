@@ -33,12 +33,9 @@ class ConfirmCourtReservation extends Component {
         const {
           commerce,
           court,
-          courtType,
           startDate,
           endDate,
-          areaId,
           price,
-          light,
           firstName,
           lastName
         } = this.props;
@@ -110,7 +107,7 @@ class ConfirmCourtReservation extends Component {
   };
 
   render() {
-    const { commerce, court, startDate, endDate, light, price } = this.props;
+    const { commerce, court, startDate, endDate, price } = this.props;
 
     return (
       <View style={{ flex: 1 }}>
@@ -124,7 +121,6 @@ class ConfirmCourtReservation extends Component {
           startDate={startDate}
           endDate={endDate}
           price={price}
-          light={light}
         />
         <View style={styles.confirmButtonContainer}>{this.renderButtons()}</View>
         {this.renderEmailModal()}
@@ -147,28 +143,22 @@ const styles = StyleSheet.create({
 const mapStateToProps = state => {
   const {
     commerce,
-    courtType,
     court,
     startDate,
     endDate,
     price,
-    light,
     saved,
     exists,
     loading
   } = state.reservation;
   const { firstName, lastName } = state.clientData;
-  const { area: { areaId } } = state.commerceData;
 
   return {
     commerce,
-    courtType,
     court,
     startDate,
     endDate,
     price,
-    light,
-    areaId,
     saved,
     exists,
     loading,

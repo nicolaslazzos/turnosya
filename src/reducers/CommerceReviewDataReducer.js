@@ -7,10 +7,7 @@ import {
   ON_COMMERCE_REVIEW_CREATED,
   ON_COMMERCE_REVIEW_DELETING,
   ON_COMMERCE_REVIEW_DELETED,
-  ON_COMMERCE_REVIEW_DELETE_FAIL,
-  ON_COMMERCE_REVIEW_READ,
-  ON_COMMERCE_REVIEW_READING,
-  ON_COMMERCE_REVIEW_READ_FAIL
+  ON_COMMERCE_REVIEW_DELETE_FAIL
 } from '../actions/types';
 import { Toast } from '../components/common';
 
@@ -54,16 +51,6 @@ export default (state = INITIAL_STATE, action) => {
     case ON_COMMERCE_REVIEW_DELETE_FAIL:
       Toast.show({ text: 'Se ha producido un error, inténtelo de nuevo.' });
       return { ...state, deleteLoading: false };
-
-    case ON_COMMERCE_REVIEW_READING:
-      return { ...state, dataLoading: true };
-
-    case ON_COMMERCE_REVIEW_READ:
-      return { ...state, dataLoading: false, ...action.payload };
-
-    case ON_COMMERCE_REVIEW_READ_FAIL:
-      Toast.show({ text: 'Se ha producido un error, inténtelo de nuevo.' });
-      return { ...state, dataLoading: false };
 
     default:
       return state;

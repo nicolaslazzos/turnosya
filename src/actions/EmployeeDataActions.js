@@ -1,7 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
-import { onClientNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { onUserWorkplacesRead } from './ClientDataActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { onReservationsCancel } from './ReservationsListActions';
@@ -22,20 +22,17 @@ import {
 import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
-export const onEmployeeValueChange = payload => ({
-  type: ON_EMPLOYEE_VALUE_CHANGE,
-  payload
-});
+export const onEmployeeValueChange = payload => ({ type: ON_EMPLOYEE_VALUE_CHANGE, payload });
 
 export const onEmployeeValuesReset = () => ({ type: ON_EMPLOYEE_VALUES_RESET });
 
-export const onEmployeeInvite = ({ commerceId, commerceName, role, visible, profileId }, navigation) => dispatch => {
+export const onEmployeeInvite = ({ commerceId, commerceName, roleId, visible, profileId }, navigation) => dispatch => {
   dispatch({ type: ON_EMPLOYEE_SAVING });
 
   axios.post(`${backendUrl}/api/employees/create/`, {
     commerceId,
     profileId,
-    roleId: role.roleId,
+    roleId,
     visible,
     inviteDate: localDate(),
   })
@@ -45,7 +42,7 @@ export const onEmployeeInvite = ({ commerceId, commerceName, role, visible, prof
         body: `Usted ha sido invitado como empleado del negocio ${commerceName}. Seleccione si desea aceptar o rechazar la invitación!`
       };
 
-      onClientNotificationSend(notification, profileId, NOTIFICATION_TYPES.INVITE, response.data.id);
+      onNotificationSend({ notification, profileId, employeeId: response.data.id, notificationTypeId: NOTIFICATION_TYPES.INVITE });
 
       dispatch({ type: ON_EMPLOYEE_CREATED });
       navigation.goBack();
@@ -56,7 +53,7 @@ export const onEmployeeInvite = ({ commerceId, commerceName, role, visible, prof
     });
 };
 
-export const onEmployeeCreate = ({ employeeId, profileId }) => async dispatch => {
+export const onEmployeeCreate = ({ employeeId, profileId }) => dispatch => {
   dispatch({ type: ON_EMPLOYEE_SAVING });
 
   axios.patch(`${backendUrl}/api/employees/update/${employeeId}/`, { startDate: localDate() })
@@ -65,18 +62,12 @@ export const onEmployeeCreate = ({ employeeId, profileId }) => async dispatch =>
       if (profileId === firebase.auth().currentUser.uid) onUserWorkplacesRead()(dispatch);
     })
     .catch(error => dispatch({ type: ON_EMPLOYEE_SAVE_FAIL }));
-
-  // const tokens = await db.collection(`Profiles/${profileId}/NotificationTokens`).get();
-
-  // if (!tokens.empty) tokens.forEach(token =>
-  //   batch.set(db.doc(`Commerces/${commerceId}/NotificationTokens/${token.id}`), { employeeId })
-  // );
 };
 
-export const onEmployeeUpdate = ({ employeeId, role, visible }, navigation) => dispatch => {
+export const onEmployeeUpdate = ({ employeeId, roleId, visible }, navigation) => dispatch => {
   dispatch({ type: ON_EMPLOYEE_SAVING });
 
-  axios.patch(`${backendUrl}/api/employees/update/${employeeId}`, { roleId: role.roleId, visible })
+  axios.patch(`${backendUrl}/api/employees/update/${employeeId}`, { roleId, visible })
     .then(() => {
       dispatch({ type: ON_EMPLOYEE_UPDATED });
       navigation.goBack();
@@ -84,39 +75,23 @@ export const onEmployeeUpdate = ({ employeeId, role, visible }, navigation) => d
     .catch(error => dispatch({ type: ON_EMPLOYEE_SAVE_FAIL }));
 };
 
-export const onEmployeeDelete = ({ employeeId, commerceId, profileId, reservationsToCancel }) => async dispatch => {
+export const onEmployeeDelete = ({ employeeId, reservationsToCancel }) => async dispatch => {
   try {
-    await axios.delete(`${backendUrl}/api/employees/delete/${employeeId}`);
+    let requests = [];
 
-    // if (!workplaces.empty) {
-    //   reservationsToCancel && await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
-    // }
+    requests.push(axios.delete(`${backendUrl}/api/employees/delete/${employeeId}`));
+    requests = onReservationsCancel(reservationsToCancel, requests);
+
+    await axios.all(requests);
 
     reservationsToCancel && reservationsToCancel.forEach(res => {
-      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+      if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 
     dispatch({ type: ON_EMPLOYEE_DELETED });
   } catch (error) {
     console.error(error);
   }
-};
-
-export const onEmployeeInfoUpdate = email => dispatch => {
-  dispatch({ type: ON_USER_SEARCHING });
-
-  searchUserByEmail(email).then(snapshot => {
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      dispatch({
-        type: ON_USER_SEARCH_SUCCESS,
-        payload: {
-          ...doc.data(),
-          profileId: doc.id
-        }
-      });
-    }
-  });
 };
 
 export const onUserByEmailSearch = (email, commerceId) => dispatch => {

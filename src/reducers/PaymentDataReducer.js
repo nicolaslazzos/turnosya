@@ -1,7 +1,4 @@
 import {
-  ON_PAYMENT_READ,
-  ON_PAYMENT_READ_FAIL,
-  ON_PAYMENT_READING,
   ON_CASH_PAYMENT_REGISTERED,
   ON_CASH_PAYMENT_REGISTERING,
   ON_CASH_PAYMENT_REGISTER_FAIL
@@ -17,15 +14,6 @@ const INITIAL_STATE = {
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
-    case ON_PAYMENT_READING:
-      return { ...state, loading: true };
-    case ON_PAYMENT_READ:
-      return { ...state, ...action.payload, loading: false };
-    case ON_PAYMENT_READ_FAIL:
-      Toast.show({
-        text: 'Ha ocurrido un error. Vuelva a intentarlo más tarde.'
-      });
-      return { ...INITIAL_STATE, loading: false };
     case ON_CASH_PAYMENT_REGISTERING:
       return { ...state, cashPayRegisterLoading: true };
     case ON_CASH_PAYMENT_REGISTER_FAIL:

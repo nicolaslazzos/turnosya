@@ -54,7 +54,7 @@ class CommerceDrawerContent extends Component {
           title="Cerrar Sesión"
           icon={{ name: 'md-exit' }}
           loadingWithText={this.props.loadingLogout}
-          onPress={() => this.props.onLogout(this.props.commerceId, this.props.workplaces)}
+          onPress={() => this.props.onLogout()}
         />
       </Drawer>
     );
@@ -65,10 +65,9 @@ const mapStateToProps = state => {
   const { name, profilePicture, commerceId } = state.commerceData;
   const { loading: loadingLogout } = state.auth;
   const { role: { roleId } } = state.roleData;
-  const { workplaces } = state.clientData;
   const { loading: loadingNotifications } = state.notificationsList;
 
-  return { name, profilePicture, commerceId, loadingLogout, roleId, workplaces, loadingNotifications };
+  return { name, profilePicture, commerceId, loadingLogout, roleId, loadingNotifications };
 };
 
 export default connect(mapStateToProps, {

@@ -1,7 +1,6 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
-import getEnvVars from '../../environment';
 import {
   ON_FAVORITE_COMMERCE_ADDED,
   ON_FAVORITE_COMMERCE_DELETED,
@@ -15,6 +14,7 @@ import {
   ON_COMMERCES_LIST_READING
 } from './types';
 
+import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
 export const onCommercesListValueChange = payload => ({
@@ -25,7 +25,7 @@ export const onCommercesListValueChange = payload => ({
 export const onCommercesRead = ({ areaId, provinceId, contains }) => dispatch => {
   dispatch({ type: ON_COMMERCES_LIST_READING });
 
-  axios.get(`${backendUrl}/api/commerces/`, { params: { areaId: areaId || '', provinceId: provinceId || '', contains: contains || '' } })
+  axios.get(`${backendUrl}/api/commerces/`, { params: { areaId: areaId || null, provinceId: provinceId || null, contains: contains || null } })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_READ, payload: response.data }))
     .catch(error => {
       console.error(error);
@@ -56,11 +56,9 @@ export const onFavoriteCommerceRegister = commerceId => dispatch => {
 };
 
 export const onFavoriteCommercesRead = () => dispatch => {
-  const { currentUser } = firebase.auth();
+  const profileId = firebase.auth().currentUser.uid;
 
-  axios.get(`${backendUrl}/api/favorites/id/`, {
-    params: { profileId: currentUser.uid }
-  })
+  axios.get(`${backendUrl}/api/favorites/id/`, { params: { profileId } })
     .then(response => dispatch({ type: ON_COMMERCES_LIST_VALUE_CHANGE, payload: { favoriteCommerces: response.data } }))
     .catch(error => console.error(error));
 };
@@ -68,9 +66,9 @@ export const onFavoriteCommercesRead = () => dispatch => {
 export const onOnlyFavoriteCommercesRead = () => dispatch => {
   dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READING });
 
-  const { currentUser } = firebase.auth();
+  const profileId = firebase.auth().currentUser.uid;
 
-  axios.get(`${backendUrl}/api/favorites/`, { params: { profileId: currentUser.uid } })
+  axios.get(`${backendUrl}/api/favorites/`, { params: { profileId } })
     .then(response => dispatch({ type: ON_ONLY_FAVORITE_COMMERCES_READ, payload: { onlyFavoriteCommerces: response.data } }))
     .catch(error => console.error(error));
 };

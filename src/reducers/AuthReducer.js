@@ -6,8 +6,6 @@ import {
   ON_LOGOUT,
   ON_LOGOUT_FAIL,
   ON_LOGOUT_SUCCESS,
-  ON_LOGIN_FACEBOOK,
-  ON_LOGIN_GOOGLE,
   ON_REAUTH_SUCCESS,
   ON_REAUTH_FAIL,
   ON_EMAIL_VERIFY_ASKED,
@@ -45,12 +43,6 @@ export default (state = INITIAL_STATE, action) => {
 
     case ON_LOGIN:
       return { ...state, error: '', loadingLogin: true };
-
-    case ON_LOGIN_FACEBOOK:
-      return { ...INITIAL_STATE, loadingFacebook: true };
-
-    case ON_LOGIN_GOOGLE:
-      return { ...INITIAL_STATE, loadingGoogle: true };
 
     case ON_LOGIN_SUCCESS:
     case ON_LOGOUT_FAIL:

@@ -8,7 +8,7 @@ import { onReservationValueChange, onEmployeesRead } from '../../actions';
 class CommerceEmployeesList extends Component {
   componentDidMount() {
     this.unsubscribeEmployeesRead = this.props.onEmployeesRead({
-      commerceId: this.props.commerce.objectID,
+      commerceId: this.props.commerce.commerceId,
       visible: true,
       startDate: true,
       employeesIds: this.props.service ? this.props.service.employeesIds : null

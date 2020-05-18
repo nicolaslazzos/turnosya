@@ -1,7 +1,7 @@
 import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
-import { onCommerceNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { localDate } from '../utils';
 import {
@@ -14,23 +14,16 @@ import {
   ON_RESERVATION_EXISTS
 } from './types';
 
-
 import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
-export const onReservationValueChange = payload => {
-  return { type: ON_RESERVATION_VALUE_CHANGE, payload };
-};
+export const onReservationValueChange = payload => ({ type: ON_RESERVATION_VALUE_CHANGE, payload });
 
-export const onNewReservation = () => {
-  return { type: ON_NEW_RESERVATION };
-};
+export const onNewReservation = () => ({ type: ON_NEW_RESERVATION })
 
-export const onNewServiceReservation = () => {
-  return { type: ON_NEW_SERVICE_RESERVATION };
-};
+export const onNewServiceReservation = () => ({ type: ON_NEW_SERVICE_RESERVATION });
 
-export const onClientReservationCreate = ({ commerceId, employeeId, courtId, serviceId, clientName, clientPhone, startDate, endDate, price }, notification) => async dispatch => {
+export const onClientReservationCreate = ({ commerceId, employeeId, courtId, serviceId, startDate, endDate, price }, notification) => async dispatch => {
   dispatch({ type: ON_RESERVATION_CREATING });
 
   const clientId = firebase.auth().currentUser.uid;
@@ -47,15 +40,13 @@ export const onClientReservationCreate = ({ commerceId, employeeId, courtId, ser
       courtId,
       serviceId,
       stateId: 'reserved',
-      clientName,
-      clientPhone,
       reservationDate: localDate(),
       startDate: localDate(startDate),
       endDate: localDate(endDate),
       price: parseFloat(price)
     });
 
-    onCommerceNotificationSend(notification, commerceId, employeeId, NOTIFICATION_TYPES.NOTIFICATION);
+    notification && onNotificationSend({ notification, commerceId, employeeId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
 
     dispatch({ type: ON_RESERVATION_CREATE });
   } catch (error) {
@@ -64,94 +55,29 @@ export const onClientReservationCreate = ({ commerceId, employeeId, courtId, ser
   }
 };
 
-export const onCommerceCourtReservationCreate = ({
-  commerceId,
-  areaId,
-  courtId,
-  courtType,
-  clientName,
-  clientPhone,
-  startDate,
-  endDate,
-  light,
-  price
-}) => async dispatch => {
+export const onCommerceReservationCreate = ({ commerceId, employeeId, courtId, serviceId, clientName, clientPhone, startDate, endDate, price }, notification) => async dispatch => {
   dispatch({ type: ON_RESERVATION_CREATING });
 
-  const db = firebase.firestore();
-
   try {
-    const stateDoc = await db.doc(`ReservationStates/reserved`).get();
+    // if ((courtId && await courtReservationExists({ commerceId, courtId, startDate })) ||
+    //   (employeeId && await serviceReservationExists({ commerceId, employeeId, startDate, endDate })))
+    //   return dispatch({ type: ON_RESERVATION_EXISTS });
 
-    if (await courtReservationExists({ commerceId, courtId, startDate: startDate.toDate() }))
-      return dispatch({ type: ON_RESERVATION_EXISTS });
-
-    await db.collection(`Commerces/${commerceId}/Reservations`).add({
-      areaId,
-      clientId: null,
-      courtId,
-      courtType,
-      clientName,
-      clientPhone,
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      reservationDate: new Date(),
-      cancellationDate: null,
-      price,
-      light,
-      state: { id: stateDoc.id, name: stateDoc.data().name }
-    });
-
-    dispatch({ type: ON_RESERVATION_CREATE });
-  } catch (error) {
-    dispatch({ type: ON_RESERVATION_CREATE_FAIL });
-  }
-};
-
-export const onCommerceServiceReservationCreate = ({
-  areaId,
-  commerceId,
-  serviceId,
-  employeeId,
-  clientName,
-  clientPhone,
-  startDate,
-  endDate,
-  price,
-  notification
-}) => async dispatch => {
-  dispatch({ type: ON_RESERVATION_CREATING });
-
-  const db = firebase.firestore();
-
-  try {
-    const stateDoc = await db.doc(`ReservationStates/reserved`).get();
-
-    if (await serviceReservationExists({
+    await axios.post(`${backendUrl}/api/reservations/create/`, {
       commerceId,
       employeeId,
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate()
-    }))
-      return dispatch({ type: ON_RESERVATION_EXISTS });
-
-    await db.collection(`Commerces/${commerceId}/Reservations`).add({
-      areaId,
+      courtId,
       serviceId,
-      employeeId,
-      clientId: null,
+      stateId: 'reserved',
       clientName,
       clientPhone,
-      startDate: startDate.toDate(),
-      endDate: endDate.toDate(),
-      reservationDate: new Date(),
-      cancellationDate: null,
-      price,
-      state: { id: stateDoc.id, name: stateDoc.data().name }
+      reservationDate: localDate(),
+      startDate: localDate(startDate),
+      endDate: localDate(endDate),
+      price: parseFloat(price)
     });
 
-    if (notification)
-      onCommerceNotificationSend(notification, commerceId, employeeId, NOTIFICATION_TYPES.NOTIFICATION);
+    notification && onNotificationSend({ notification, commerceId, employeeId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
 
     dispatch({ type: ON_RESERVATION_CREATE });
   } catch (error) {

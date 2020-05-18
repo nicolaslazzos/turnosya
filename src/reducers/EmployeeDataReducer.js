@@ -18,7 +18,7 @@ const INITIAL_STATE = {
   phone: '',
   firstName: '',
   lastName: '',
-  role: {},
+  roleId: null,
   employeeId: '',
   visible: true,
   emailLoading: false,

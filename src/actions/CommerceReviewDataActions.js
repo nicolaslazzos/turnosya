@@ -1,5 +1,3 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import axios from 'axios';
 import { localDate } from '../utils';
 import {
@@ -11,10 +9,7 @@ import {
   ON_COMMERCE_REVIEW_CREATED,
   ON_COMMERCE_REVIEW_DELETED,
   ON_COMMERCE_REVIEW_DELETING,
-  ON_COMMERCE_REVIEW_DELETE_FAIL,
-  ON_COMMERCE_REVIEW_READ,
-  ON_COMMERCE_REVIEW_READING,
-  ON_COMMERCE_REVIEW_READ_FAIL
+  ON_COMMERCE_REVIEW_DELETE_FAIL
 } from './types';
 
 import getEnvVars from '../../environment';

@@ -68,6 +68,7 @@ class CommerceReservationsList extends Component {
 
   renderItem = ({ item }) => {
     const clientName = item.client ? `${item.client.firstName} ${item.client.lastName}` : item.clientName;
+    const serviceName = item.court ? item.court.name : item.service.name;
 
     return (
       <ListItem
@@ -77,7 +78,7 @@ class CommerceReservationsList extends Component {
           color: 'black'
         }}
         title={`${item.startDate.format('HH:mm')} a ${item.endDate.format('HH:mm')}`}
-        subtitle={`${clientName}\n${item.court.name || item.service.name}`}
+        subtitle={`${clientName}\n${serviceName}`}
         rightTitle={`$${item.price}`}
         rightTitleStyle={styles.listItemRightTitleStyle}
         rightSubtitle={
@@ -85,7 +86,7 @@ class CommerceReservationsList extends Component {
             <AreaComponentRenderer
               sports={
                 <Text style={styles.listItemRightSubtitleStyle}>
-                  {item.court.lightHour && item.court.lightHour <= item.startDate.format('HH:mm') ? 'Con Luz' : 'Sin Luz'}
+                  {item.court && item.court.lightHour && item.court.lightHour <= item.startDate.format('HH:mm') ? 'Con Luz' : 'Sin Luz'}
                 </Text>
               }
             />

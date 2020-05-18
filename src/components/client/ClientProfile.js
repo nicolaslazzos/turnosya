@@ -271,7 +271,7 @@ class ClientProfile extends Component {
           <TouchableOpacity
             onPress={() =>
               this.props.navigation.navigate('clientReviewsList', {
-                clientId: this.props.clientId
+                clientId: this.props.profileId
               })
             }
           >
@@ -388,7 +388,7 @@ const {
 
 const mapStateToProps = state => {
   const {
-    clientId,
+    profileId,
     firstName,
     lastName,
     phone,
@@ -404,7 +404,7 @@ const mapStateToProps = state => {
   const { provincesList } = state.provinceData;
 
   return {
-    clientId,
+    profileId,
     firstName,
     lastName,
     phone,

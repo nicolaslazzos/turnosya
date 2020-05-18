@@ -64,10 +64,10 @@ class CourtListItem extends Component {
   };
 
   onConfirmDeletePress = () => {
-    const { court, commerceId } = this.props;
+    const { court } = this.props;
     const { reservationsToCancel } = this.state;
 
-    this.props.onCourtDelete({ id: court.id, commerceId, reservationsToCancel });
+    this.props.onCourtDelete({ courtId: court.id, reservationsToCancel });
     this.setState({ deleteVisible: false });
   };
 

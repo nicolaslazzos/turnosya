@@ -36,9 +36,7 @@ class ClientDrawerContent extends Component {
         const success = await this.props.onCommerceRead(commerceId);
 
         if (success && this.props.areaId && this.props.role.roleId) {
-          this.props.navigation.navigate(
-            `${this.props.areaId}${this.props.role.value === ROLES.EMPLOYEE.value ? 'Employees' : ''}`
-          );
+          this.props.navigation.navigate(`${this.props.areaId}${this.props.role.value === ROLES.EMPLOYEE.value ? 'Employees' : ''}`);
         }
       } catch (error) {
         console.error(error);
@@ -110,7 +108,7 @@ class ClientDrawerContent extends Component {
             title="Cerrar Sesión"
             icon={{ name: 'md-exit' }}
             loadingWithText={this.props.loadingLogout}
-            onPress={() => this.props.onLogout(this.props.commerceId, this.props.workplaces)}
+            onPress={() => this.props.onLogout()}
           />
         </Drawer>
         {this.renderEmailModal()}

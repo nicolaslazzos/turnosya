@@ -3,7 +3,7 @@ import 'firebase/firestore';
 import axios from 'axios';
 import { formatReservation } from './ReservationsListActions';
 import { AREAS, NOTIFICATION_TYPES } from '../constants';
-import { onCommerceNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { localDate } from '../utils';
 import {
   ON_CLIENT_RESERVATIONS_READ,
@@ -26,10 +26,10 @@ export const onClientReservationsListRead = () => dispatch => {
     .catch(error => console.error(error));
 };
 
-export const onClientReservationCancel = ({ reservationId, commerceId, navigation, notification }) => {
+export const onClientReservationCancel = ({ reservationId, commerceId, employeeId, notification, navigation }) => {
   axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'canceled', cancellationDate: localDate() })
     .then(() => {
-      onCommerceNotificationSend(notification, commerceId, notification.employeeId, NOTIFICATION_TYPES.NOTIFICATION);
+      onNotificationSend({ notification, commerceId, employeeId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
       dispatch({ type: ON_CLIENT_RESERVATION_CANCEL });
       navigation.goBack();
     })

@@ -126,7 +126,6 @@ class CommerceSchedulesList extends Component {
     const { lastReservationDate, selectedSchedule, reservationsToCancel } = this.state;
 
     const success = await this.props.onScheduleDelete({
-      commerceId: this.props.commerceId,
       schedule: selectedSchedule,
       endDate: lastReservationDate,
       reservationsToCancel

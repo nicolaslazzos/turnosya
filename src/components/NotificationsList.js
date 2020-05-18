@@ -4,16 +4,13 @@ import { Divider, ListItem } from 'react-native-elements';
 import { connect } from 'react-redux';
 import { Spinner, EmptyList, MenuItem, Menu } from './common';
 import {
-  onClientNotificationsRead,
-  onClientNotificationDelete,
-  onCommerceNotificationsRead,
-  onCommerceNotificationDelete,
+  onNotificationsRead,
+  onNotificationDelete,
   onEmployeeCreate,
   onEmployeeDelete,
   onUserWorkplacesRead,
   onEmploymentInvitationConfirm,
-  onCommerceSetNotificationsRead,
-  onClientSetNotificationsRead
+  onSetNotificationsRead,
 } from '../actions';
 import { MAIN_COLOR, NOTIFICATION_TYPES } from '../constants';
 import moment from 'moment';
@@ -30,57 +27,26 @@ class NotificationsList extends Component {
 
   componentDidMount() {
     const type = this.props.navigation.state.routeName === 'commerceNotificationslist' ? 'commerce' : 'client';
-    this.willBlurSubscription = this.props.navigation.addListener('willBlur', () => this.onSetNotificationsRead(type));
+    this.willBlurSubscription = this.props.navigation.addListener('willBlur', () => this.onSetNotificationsRead());
     this.setState({ type }, this.onNotificationsRead);
   }
 
-  onSetNotificationsRead = type => {
-    const { clientId, notifications, commerceId } = this.props;
-
-    if (type === 'client') {
-      onClientSetNotificationsRead(clientId, notifications);
-    } else {
-      onCommerceSetNotificationsRead(commerceId, notifications);
-    }
+  onSetNotificationsRead = () => {
+    const { notifications } = this.props;
+    onSetNotificationsRead(notifications);
   };
 
   componentWillUnmount() {
-    this.unsubscribeNotificationsRead && this.unsubscribeNotificationsRead();
     this.willBlurSubscription.remove && this.willBlurSubscription.remove();
   }
 
   onNotificationsRead = () => {
-    this.unsubscribeNotificationsRead && this.unsubscribeNotificationsRead();
-    if (this.state.type === 'client')
-      this.unsubscribeNotificationsRead = this.props.onClientNotificationsRead(this.props.clientId);
-    else this.unsubscribeNotificationsRead = this.props.onCommerceNotificationsRead(this.props.commerceId);
-  };
-
-  onProfilePress = () => {
-    if (this.state.type === 'client') {
-      let commerceId = this.state.selectedNotification.sentBy;
-      this.props.navigation.navigate('commerceProfileView', { commerceId });
-    } else {
-      const clientId = this.state.selectedNotification.sentBy;
-      this.props.navigation.navigate('clientProfileView', { clientId });
-    }
-    this.setState({ optionsVisible: false });
+    if (this.state.type === 'client') this.props.onNotificationsRead({ profileId: this.props.profileId });
+    else this.props.onNotificationsRead({ commerceId: this.props.commerceId });
   };
 
   onNotificationDeletePress = () => {
-    if (this.state.type === 'client') {
-      const { clientId } = this.props;
-      this.props.onClientNotificationDelete({
-        clientId,
-        notificationId: this.state.selectedNotification.id
-      });
-    } else {
-      const { commerceId } = this.props;
-      this.props.onCommerceNotificationDelete({
-        commerceId,
-        notificationId: this.state.selectedNotification.id
-      });
-    }
+    this.props.onNotificationDelete(this.state.selectedNotification.id);
     this.setState({ optionsVisible: false });
   };
 
@@ -89,15 +55,15 @@ class NotificationsList extends Component {
   };
 
   onEmploymentConfirmPress = () => {
-    const { sentBy, employeeId } = this.state.selectedNotification;
+    const { employee, profileId } = this.state.selectedNotification;
 
     if (this.state.isAcceptingEmployment) {
       // Acepta la invitación
-      this.props.onEmployeeCreate({ commerceId: sentBy, employeeId, profileId: this.props.clientId });
+      this.props.onEmployeeCreate({ employeeId: employee.id, profileId });
       this.props.onEmploymentInvitationConfirm(this.state.selectedNotification, true);
     } else {
       // Rechaza la invitación
-      this.props.onEmployeeDelete({ commerceId: sentBy, employeeId, profileId: this.props.clientId });
+      this.props.onEmployeeDelete({ employeeId });
       this.props.onEmploymentInvitationConfirm(this.state.selectedNotification, false);
     }
 
@@ -163,17 +129,14 @@ class NotificationsList extends Component {
           <FlatList
             data={this.props.notifications}
             renderItem={this.renderRow.bind(this)}
-            keyExtractor={notification => notification.id}
+            keyExtractor={notification => notification.id.toString()}
             extraData={this.props.notifications}
             refreshControl={this.onRefresh()}
           />
           <Menu
-            title={`Está seguro que desea ${
-              this.state.isAcceptingEmployment ? 'aceptar' : 'rechazar'
-              } la invitación de empleo? Esta acción no puede ser modificada.`}
+            title={`Está seguro que desea ${this.state.isAcceptingEmployment ? 'aceptar' : 'rechazar'} la invitación de empleo? Esta acción no puede ser modificada.`}
             onBackdropPress={() => this.setState({ confirmEmploymentVisible: false })}
-            isVisible={(this.state.confirmEmploymentVisible || this.props.employeeSaveLoading)
-              && this.props.navigation.isFocused()}
+            isVisible={(this.state.confirmEmploymentVisible || this.props.employeeSaveLoading) && this.props.navigation.isFocused()}
           >
             <MenuItem
               title="Aceptar"
@@ -194,16 +157,9 @@ class NotificationsList extends Component {
             onBackdropPress={() => this.setState({ optionsVisible: false })}
             isVisible={this.state.optionsVisible}
           >
-            {this.state.selectedNotification &&
-              this.state.selectedNotification.notificationType && // cuando se limpien notificaciones viejas se podría sacar
-              this.state.selectedNotification.notificationType.id === NOTIFICATION_TYPES.INVITE.id &&
-              !this.state.selectedNotification.acceptanceDate &&
-              !this.state.selectedNotification.rejectionDate
-              ? this.renderEmploymentInvitationOptions()
-              : null}
-            {this.state.selectedNotification && this.state.selectedNotification.sentBy ? (
-              <MenuItem title="Perfil" icon="md-person" onPress={this.onProfilePress} />
-            ) : null}
+            {this.state.selectedNotification && this.state.selectedNotification.notificationType.id === NOTIFICATION_TYPES.INVITE &&
+              !this.state.selectedNotification.acceptanceDate && !this.state.selectedNotification.rejectionDate
+              ? this.renderEmploymentInvitationOptions() : null}
             <Divider style={{ backgroundColor: 'grey' }} />
             <MenuItem title="Eliminar" icon="md-trash" onPress={this.onNotificationDeletePress} />
           </Menu>
@@ -215,18 +171,16 @@ class NotificationsList extends Component {
 
 const mapStateToProps = state => {
   const { notifications, loading } = state.notificationsList;
-  const { clientId } = state.clientData;
+  const { profileId } = state.clientData;
   const { commerceId } = state.commerceData;
   const { saveLoading: employeeSaveLoading } = state.employeeData;
 
-  return { notifications, loading, clientId, commerceId, employeeSaveLoading };
+  return { notifications, loading, profileId, commerceId, employeeSaveLoading };
 };
 
 export default connect(mapStateToProps, {
-  onClientNotificationsRead,
-  onClientNotificationDelete,
-  onCommerceNotificationsRead,
-  onCommerceNotificationDelete,
+  onNotificationsRead,
+  onNotificationDelete,
   onEmployeeCreate,
   onEmployeeDelete,
   onUserWorkplacesRead,

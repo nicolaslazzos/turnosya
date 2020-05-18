@@ -2,7 +2,7 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import axios from 'axios';
 import moment from 'moment';
-import { onClientNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import store from '../reducers';
 import { localDate } from '../utils';
@@ -70,12 +70,12 @@ export const onCommerceDetailedReservationsRead = ({ commerceId, employeeId, cou
 }
 
 
-export const onCommerceReservationCancel = ({ commerceId, reservationId, clientId, navigation, notification }) => dispatch => {
+export const onCommerceReservationCancel = ({ reservationId, clientId, navigation, notification }) => dispatch => {
   dispatch({ type: ON_COMMERCE_RESERVATION_CANCELING });
 
   axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { stateId: 'canceled', cancellationDate: localDate() })
     .then(() => {
-      notification && onClientNotificationSend(notification, clientId, NOTIFICATION_TYPES.NOTIFICATION);
+      notification && onNotificationSend({ notification, profileId: clientId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
       dispatch({ type: ON_COMMERCE_RESERVATION_CANCELED });
       navigation.goBack();
     })
@@ -104,7 +104,7 @@ export const onNextReservationsRead = ({ commerceId, startDate, endDate, employe
     });
 };
 
-export const onCommercePaymentRefund = ({ payment }) => async () => {
+export const onCommercePaymentRefund = payment => async () => {
   try {
     if (payment.paymentMethod.id !== 'cash') {
       // fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds?access_token=${mPagoToken}`, {
@@ -118,22 +118,19 @@ export const onCommercePaymentRefund = ({ payment }) => async () => {
       //   }
       // });
     } else {
-      axios.patch(`${backendUrl}/api/payments/update/${paymentId}/`, { refundDate: localDate() });
+      axios.patch(`${backendUrl}/api/payments/update/${payment.id}/`, { refundDate: localDate() });
     }
   } catch (error) {
     console.error(error);
   }
 };
 
-export const onReservationsCancel = async (commerceId, reservations) => {
-  const requests = []
-
-  // reservations cancel
-  const mPagoToken = store.getState().commerceData.mPagoToken;
+export const onReservationsCancel = (reservations, requests) => {
+  // const mPagoToken = store.getState().commerceData.mPagoToken;
 
   reservations.forEach(res => {
     requests.push(axios.patch(`${backendUrl}/api/reservations/update/${res.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
-    if (res.payment) onCommercePaymentRefund({ payment: res.payment })();
+    if (res.payment) onCommercePaymentRefund(res.payment)();
   });
 
   return requests;

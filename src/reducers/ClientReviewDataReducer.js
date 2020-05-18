@@ -7,10 +7,7 @@ import {
   ON_CLIENT_REVIEW_CREATED,
   ON_CLIENT_REVIEW_DELETING,
   ON_CLIENT_REVIEW_DELETED,
-  ON_CLIENT_REVIEW_DELETE_FAIL,
-  ON_CLIENT_REVIEW_READING,
-  ON_CLIENT_REVIEW_READ,
-  ON_CLIENT_REVIEW_READ_FAIL
+  ON_CLIENT_REVIEW_DELETE_FAIL
 } from '../actions/types';
 import { Toast } from '../components/common';
 
@@ -47,14 +44,6 @@ export default (state = INITIAL_STATE, action) => {
       Toast.show({ text: 'Calificación borrada con éxito.' });
     case ON_CLIENT_REVIEW_VALUES_RESET:
       return { ...INITIAL_STATE };
-
-    case ON_CLIENT_REVIEW_READING:
-      return { ...state, dataLoading: true };
-
-    case ON_CLIENT_REVIEW_READ_FAIL:
-      Toast.show({ text: 'Se ha producido un error, inténtelo de nuevo.' });
-    case ON_CLIENT_REVIEW_READ:
-      return { ...state, dataLoading: false, ...action.payload };
 
     case ON_CLIENT_REVIEW_DELETING:
       return { ...state, deleteLoading: true };

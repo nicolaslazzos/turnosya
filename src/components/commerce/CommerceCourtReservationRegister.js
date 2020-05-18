@@ -5,7 +5,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view
 import { Input, Button, CardSection } from '../common';
 import CourtReservationDetails from '../CourtReservationDetails';
 import { validateValueType, trimString } from '../../utils';
-import { onReservationValueChange, onCommerceCourtReservationCreate } from '../../actions';
+import { onReservationValueChange, onCommerceReservationCreate } from '../../actions';
 
 class CommerceCourtReservationRegister extends Component {
   state = {
@@ -99,25 +99,22 @@ class CommerceCourtReservationRegister extends Component {
     if (!this.nameError() && !this.phoneError() && !this.loading) {
       this.loading = true;
 
-      const { commerceId, areaId, clientName, clientPhone, court, startDate, endDate, light, price } = this.props;
+      const { commerceId, clientName, clientPhone, court, startDate, endDate, price } = this.props;
 
-      this.props.onCommerceCourtReservationCreate({
+      this.props.onCommerceReservationCreate({
         commerceId,
-        areaId,
         courtId: court.id,
-        courtType: court.court,
         clientName,
         clientPhone,
         startDate,
         endDate,
-        light,
         price
       });
     }
   };
 
   render() {
-    const { clientName, clientPhone, court, startDate, endDate, light, price, saved } = this.props;
+    const { clientName, clientPhone, court, startDate, endDate, price, saved } = this.props;
 
     return (
       <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60} contentContainerStyle={{ flexGrow: 1 }}>
@@ -129,7 +126,6 @@ class CommerceCourtReservationRegister extends Component {
           startDate={startDate}
           endDate={endDate}
           price={price}
-          light={light}
         />
         {this.renderInputs()}
         <View style={styles.confirmButtonContainer}>{this.renderButtons()}</View>
@@ -150,17 +146,13 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = state => {
-  const {
-    commerceId,
-    area: { areaId }
-  } = state.commerceData;
+  const { commerceId } = state.commerceData;
   const {
     clientName,
     clientPhone,
     court,
     startDate,
     endDate,
-    light,
     price,
     saved,
     exists,
@@ -169,13 +161,11 @@ const mapStateToProps = state => {
 
   return {
     commerceId,
-    areaId,
     clientName,
     clientPhone,
     court,
     startDate,
     endDate,
-    light,
     price,
     saved,
     exists,
@@ -185,5 +175,5 @@ const mapStateToProps = state => {
 
 export default connect(mapStateToProps, {
   onReservationValueChange,
-  onCommerceCourtReservationCreate
+  onCommerceReservationCreate
 })(CommerceCourtReservationRegister);

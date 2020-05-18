@@ -1,5 +1,3 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import axios from 'axios';
 import { localDate } from '../utils';
 import {
@@ -11,10 +9,7 @@ import {
   ON_CLIENT_REVIEW_CREATED,
   ON_CLIENT_REVIEW_DELETED,
   ON_CLIENT_REVIEW_DELETING,
-  ON_CLIENT_REVIEW_DELETE_FAIL,
-  ON_CLIENT_REVIEW_READING,
-  ON_CLIENT_REVIEW_READ,
-  ON_CLIENT_REVIEW_READ_FAIL
+  ON_CLIENT_REVIEW_DELETE_FAIL
 } from './types';
 
 import getEnvVars from '../../environment';
@@ -43,12 +38,11 @@ export const onClientReviewUpdate = ({ reviewId, rating, comment }) => async dis
   dispatch({ type: ON_CLIENT_REVIEW_SAVING });
 
   // await axios.patch(`${backendUrl}/api/profiles/update/${clientId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
-
-  axios.patch(`${backendUrl}/api/reviews/${reviewId}/`, { comment, rating, reviewDate: localDate() })
+  axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { comment, rating, reviewDate: localDate() })
     .then(() => dispatch({ type: ON_CLIENT_REVIEW_SAVED }))
     .catch(error => {
       console.error(error);
-      dispatch({ type: ON_CLIENT_REVIEW_SAVE_FAIL })
+      dispatch({ type: ON_CLIENT_REVIEW_SAVE_FAIL });
     });
 };
 
@@ -56,11 +50,15 @@ export const onClientReviewDelete = ({ reservationId, reviewId }) => async dispa
   dispatch({ type: ON_CLIENT_REVIEW_DELETING });
 
   try {
-    await axios.patch(`${backendUrl}/api/reviews/${reviewId}/`, { softDelete: localDate() });
-    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { clientReviewId: null });
+    const requests = [];
+
+    requests.push(axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { softDelete: localDate() }));
+    requests.push(axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { clientReviewId: null }));
     // await axios.patch(`${backendUrl}/api/profiles/update/${clientId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
 
-    dispatch({ type: ON_CLIENT_REVIEW_DELETED })
+    await axios.all(requests);
+
+    dispatch({ type: ON_CLIENT_REVIEW_DELETED });
   } catch (error) {
     console.error(error);
     dispatch({ type: ON_CLIENT_REVIEW_DELETE_FAIL });

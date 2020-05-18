@@ -1,11 +1,6 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import axios from 'axios';
 import { localDate } from '../utils';
 import {
-  ON_PAYMENT_READ,
-  ON_PAYMENT_READING,
-  ON_PAYMENT_READ_FAIL,
   ON_CASH_PAYMENT_REGISTERED,
   ON_CASH_PAYMENT_REGISTERING,
   ON_CASH_PAYMENT_REGISTER_FAIL

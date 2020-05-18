@@ -84,17 +84,12 @@ class CourtListItem extends Component {
   };
 
   onConfirmDeletePress = () => {
-    const { commerceId, employee } = this.props;
+    const { employee } = this.props;
     const { reservationsToCancel } = this.state;
 
     employee.startDate
-      ? this.props.onEmployeeDelete({
-          employeeId: employee.id,
-          commerceId,
-          profileId: employee.profileId,
-          reservationsToCancel
-        })
-      : this.props.onEmploymentInvitationCancel({ employeeId: employee.id, commerceId, profileId: employee.profileId });
+      ? this.props.onEmployeeDelete({ employeeId: employee.id, reservationsToCancel })
+      : this.props.onEmploymentInvitationCancel(employee);
 
     this.setState({ deleteVisible: false });
   };
@@ -148,14 +143,14 @@ class CourtListItem extends Component {
               />
             </View>
           ) : (
-            <MenuItem title="Cancelar Invitación" icon="md-trash" onPress={this.onDeletePress} />
-          )}
+              <MenuItem title="Cancelar Invitación" icon="md-trash" onPress={this.onDeletePress} />
+            )}
         </Menu>
 
         <Menu
           title={`¿Seguro que desea ${
             startDate ? 'eliminar el' : 'cancelar la invitación del'
-          } empleado '${firstName} ${lastName}'?`}
+            } empleado '${firstName} ${lastName}'?`}
           onBackdropPress={() => this.setState({ deleteVisible: false })}
           isVisible={this.state.deleteVisible}
         >
@@ -172,11 +167,11 @@ class CourtListItem extends Component {
             startDate
               ? { textAlign: 'left', display: 'flex' }
               : {
-                  textAlign: 'left',
-                  display: 'flex',
-                  color: 'grey',
-                  fontStyle: 'italic'
-                }
+                textAlign: 'left',
+                display: 'flex',
+                color: 'grey',
+                fontStyle: 'italic'
+              }
           }
           rightTitle={<Text style={startDate ? {} : { color: 'grey', fontStyle: 'italic' }}>{role.name}</Text>}
           rightSubtitle={startDate ? null : <Text style={{ color: 'grey', fontStyle: 'italic' }}>(Invitado)</Text>}
@@ -184,19 +179,19 @@ class CourtListItem extends Component {
           subtitle={<Text style={startDate ? { color: 'grey' } : { color: 'grey', fontStyle: 'italic' }}>{email}</Text>}
           onLongPress={
             this.props.role.value > ROLES[this.props.employee.role.roleId].value ||
-            this.state.currentUserEmail === this.props.employee.email
+              this.state.currentUserEmail === this.props.employee.email
               ? this.onOptionsPress
               : null
           }
           rightIcon={
             this.props.role.value > ROLES[this.props.employee.role.roleId].value ||
-            this.state.currentUserEmail === this.props.employee.email
+              this.state.currentUserEmail === this.props.employee.email
               ? {
-                  name: 'md-more',
-                  type: 'ionicon',
-                  containerStyle: { height: 20, width: 10 },
-                  onPress: this.onOptionsPress
-                }
+                name: 'md-more',
+                type: 'ionicon',
+                containerStyle: { height: 20, width: 10 },
+                onPress: this.onOptionsPress
+              }
               : null
           }
           bottomDivider

@@ -11,81 +11,27 @@ import { NOTIFICATION_TYPES } from '../constants';
 import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
-const onCommerceNotificationTokensRead = async commerceId => {
+export const onNotificationSend = async ({ notification, profileId, commerceId, employeeId, notificationTypeId }) => {
   try {
-    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { commerceId } });
-    return tokens.data.map(token => token.id);
-  } catch (error) {
-    console.error(error);
-  }
-};
+    const { title, body } = notification;
 
-const onEmployeeNotificationTokensRead = async employeeId => {
-  try {
-    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { employeeId } });
-    return tokens.data.map(token => token.id);
-  } catch (error) {
-    console.error(error);
-  }
-};
+    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { commerceId, profileId, employeeId } });
 
-const onClientNotificationTokensRead = async profileId => {
-  try {
-    const tokens = await axios.get(`${backendUrl}/api/notifications/tokens/`, { params: { profileId } });
-    return tokens.data.map(token => token.id);
-  } catch (error) {
-    console.error(error);
-  }
-};
+    tokens.data.forEach(async token => {
+      const message = { to: token.id, sound: 'default', title, body, _displayInForeground: true };
 
-export const onCommerceNotificationSend = async (notification, commerceId, employeeId, notificationTypeId) => {
-  if (employeeId) {
-    const tokens = await onEmployeeNotificationTokensRead(employeeId);
-    sendPushNotification({ ...notification, tokens, commerceId, employeeId, notificationTypeId });
-  } else {
-    const tokens = await onCommerceNotificationTokensRead(commerceId);
-    sendPushNotification({ ...notification, tokens, commerceId, notificationTypeId });
-  }
-};
-
-export const onClientNotificationSend = async (notification, profileId, notificationTypeId) => {
-  const tokens = await onClientNotificationTokensRead(profileId);
-  sendPushNotification({ ...notification, tokens, profileId, notificationTypeId, metadata });
-};
-
-const sendPushNotification = ({ title, body, tokens, profileId, commerceId, employeeId, notificationTypeId }) => {
-  try {
-    if (Array.isArray(tokens) && tokens.length) {
-      tokens.forEach(async token => {
-        const message = {
-          to: token,
-          sound: 'default',
-          title,
-          body,
-          _displayInForeground: true
-        };
-
-        const response = await fetch('https://exp.host/--/api/v2/push/send', {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Accept-encoding': 'gzip, deflate',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(message)
-        });
+      const response = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Accept-encoding': 'gzip, deflate',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
       });
-    }
-
-    axios.post(`${backendUrl}/api/notifications/create/`, {
-      commerceId,
-      profileId,
-      employeeId,
-      notificationTypeId,
-      title,
-      body,
-      date: localDate()
     });
+
+    await axios.post(`${backendUrl}/api/notifications/create/`, { commerceId, profileId, employeeId, notificationTypeId, title, body, date: localDate() });
   } catch (error) {
     console.error(error);
   }
@@ -139,50 +85,32 @@ export const onNotificationTokenDelete = async () => {
   }
 };
 
-export const onEmploymentInvitationConfirm = (notification, accepted) => async dispatch => {
-  const db = firebase.firestore();
-  const clientId = firebase.auth().currentUser.uid;
-
+export const onEmploymentInvitationConfirm = (notification, accepted) => async () => {
   try {
     let commerceNotification = {
       title: `Invitación de Empleo ${accepted ? 'aceptada' : 'rechazada'}`,
       body: `La invitación de empleo que usted envió ha sido ${accepted ? 'aceptada' : 'rechazada'}`
     };
 
-    await db
-      .doc(`Profiles/${clientId}/Notifications/${notification.id}`)
-      .update({ ...(accepted ? { acceptanceDate: new Date() } : { rejectionDate: new Date() }) });
-
-    await axios.post(`${backendUrl}/api/notifications/update/${notification.id}/`, { ...(accepted ? { acceptanceDate: localDate() } : { rejectionDate: localDate() }) })
-
-    // onCommerceNotificationSend(commerceNotification, notification.sentBy, clientId, notification.employeeId, NOTIFICATION_TYPES.NOTIFICATION);
-  } catch (e) {
-    console.error(e);
+    await axios.patch(`${backendUrl}/api/notifications/update/${notification.id}/`, { ...(accepted ? { acceptanceDate: localDate() } : { rejectionDate: localDate() }) });
+    onNotificationSend({ notification: commerceNotification, commerceId: notification.employee.commerceId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
+  } catch (error) {
+    console.error(error);
   }
 };
 
-export const onEmploymentInvitationCancel = ({ employeeId, commerceId, profileId }) => async dispatch => {
-  const db = firebase.firestore();
-
+export const onEmploymentInvitationCancel = employee => async () => {
   try {
-    const employeeRef = db.doc(`Commerces/${commerceId}/Employees/${employeeId}`);
-    const notificationsSnapshot = await db
-      .collection(`Profiles/${profileId}/Notifications`)
-      .where('employeeId', '==', employeeId)
-      .get();
+    const notifications = await axios.get(`${backendUrl}/api/notifications/`, { params: { employeeId: employee.id, profileId: employee.profileId } });
 
-    if (!notificationsSnapshot.empty) {
-      const notificationId = notificationsSnapshot.docs[0].id;
-      const notificationRef = db.doc(`Profiles/${profileId}/Notifications/${notificationId}`);
-
-      const batch = db.batch();
-
-      batch.update(employeeRef, { softDelete: new Date() });
-      batch.update(notificationRef, { softDelete: new Date() });
-
-      await batch.commit();
+    if (notifications.data.length) {
+      const requests = []
+      notifications.data.forEach(notification => requests.push(axios.patch(`${backendUrl}/api/notifications/update/${notification.id}/`, { softDelete: localDate() })));
+      requests.push(axios.patch(`${backendUrl}/api/employees/update/${employee.id}/`, { softDelete: localDate() }))
     }
-  } catch (e) {
-    console.error(e);
+
+    await axios.all(requests);
+  } catch (error) {
+    console.error(error);
   }
 };

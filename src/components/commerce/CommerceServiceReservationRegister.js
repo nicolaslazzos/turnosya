@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { Input, Button, CardSection } from '../common';
 import ServiceReservationDetails from '../ServiceReservationDetails';
-import { onReservationValueChange, onCommerceServiceReservationCreate } from '../../actions';
+import { onReservationValueChange, onCommerceReservationCreate } from '../../actions';
 import { validateValueType, newReservationNotificationFormat, trimString } from '../../utils';
 
 class CommerceCourtReservationRegister extends Component {
@@ -100,7 +100,6 @@ class CommerceCourtReservationRegister extends Component {
       const {
         commerceName,
         commerceId,
-        areaId,
         clientName,
         clientPhone,
         employeeId,
@@ -121,18 +120,16 @@ class CommerceCourtReservationRegister extends Component {
           receptorName: commerceName
         });
 
-      this.props.onCommerceServiceReservationCreate({
+      this.props.onCommerceReservationCreate({
         commerceId,
-        areaId,
         serviceId: service.id,
         employeeId: selectedEmployeeId,
         clientName,
         clientPhone,
         startDate,
         endDate,
-        price,
-        notification
-      });
+        price
+      }, notification);
     }
   };
 
@@ -169,11 +166,7 @@ const styles = StyleSheet.create({
 });
 
 const mapStateToProps = state => {
-  const {
-    commerceId,
-    name: commerceName,
-    area: { areaId }
-  } = state.commerceData;
+  const { commerceId, name: commerceName } = state.commerceData;
   const { clientName, clientPhone, service, startDate, endDate, price, saved, exists, loading } = state.reservation;
   const { employeeId } = state.roleData;
   const { selectedEmployeeId } = state.employeesList;
@@ -181,7 +174,6 @@ const mapStateToProps = state => {
   return {
     commerceName,
     commerceId,
-    areaId,
     clientName,
     clientPhone,
     service,
@@ -198,5 +190,5 @@ const mapStateToProps = state => {
 
 export default connect(mapStateToProps, {
   onReservationValueChange,
-  onCommerceServiceReservationCreate
+  onCommerceReservationCreate
 })(CommerceCourtReservationRegister);

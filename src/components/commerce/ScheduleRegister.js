@@ -397,11 +397,8 @@ class ScheduleRegister extends Component {
     if (this.validateMinimumData()) {
       const success = await this.props.onScheduleUpdate({
         commerceId,
-        scheduleId,
         cards,
         reservationMinLength,
-        reservationDayPeriod,
-        reservationMinCancelTime,
         startDate,
         endDate,
         schedules,

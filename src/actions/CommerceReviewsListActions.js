@@ -1,5 +1,3 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import axios from 'axios';
 import { ON_COMMERCE_REVIEWS_READING, ON_COMMERCE_REVIEWS_READ, ON_COMMERCE_REVIEWS_READ_FAIL } from './types';
 

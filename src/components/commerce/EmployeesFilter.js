@@ -56,7 +56,7 @@ class EmployeesFilter extends Component {
 
   render() {
     // solo se muestra si hay mas de 1 empleado
-    if (this.state.buttons.names < 2) return null;
+    if (this.state.buttons.names.length < 2) return null;
 
     return (
       <BadgeButtonGroup

@@ -3,7 +3,7 @@ import 'firebase/firestore';
 import axios from 'axios';
 import { userReauthenticate } from './AuthActions';
 import { ROLES } from '../constants';
-import { onClientNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { onReservationsCancel } from './ReservationsListActions';
 import { localDate } from '../utils';
@@ -70,17 +70,6 @@ export const onCommerceOpen = commerceId => async dispatch => {
   } catch (error) {
     console.error(error);
   }
-
-  axios.get(`${backendUrl}/api/employees/`, { params: { commerceId, profileId } })
-    .then(response => {
-      if (response.data.length) {
-        const employee = response.data[0];
-        dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: employee.role, employeeId: employee.id } });
-        dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: employee.id } });
-      }
-      dispatch({ type: ON_LOCATION_VALUES_RESET });
-    })
-    .catch(error => console.error(error));
 };
 
 export const onCommerceCreate = (commerceData, navigation) => async dispatch => {
@@ -222,8 +211,7 @@ export const onAreasReadForPicker = () => dispatch => {
 };
 
 export const onCuitValidate = cuit => dispatch => {
-  axios.get(`${backendUrl}/api/commerces/`, { params: { cuit } })
-    .then(response => dispatch({ type: response.data.length ? ON_CUIT_EXISTS : ON_CUIT_NOT_EXISTS }));
+  axios.get(`${backendUrl}/api/commerces/`, { params: { cuit } }).then(response => dispatch({ type: response.data.length ? ON_CUIT_EXISTS : ON_CUIT_NOT_EXISTS }));
 };
 
 export const onCommerceDelete = (password, reservationsToCancel, navigation = null) => dispatch => {
@@ -234,13 +222,15 @@ export const onCommerceDelete = (password, reservationsToCancel, navigation = nu
       dispatch({ type: ON_REAUTH_SUCCESS });
 
       try {
-        await axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`);
+        let requests = [];
 
-        // reservations cancel
-        // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+        requests.push(axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`));
+        requests = onReservationsCancel(reservationsToCancel, requests);
+
+        await axios.all(requests);
 
         reservationsToCancel.forEach(res => {
-          if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+          if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
         });
 
         dispatch({ type: ON_COMMERCE_DELETED });

@@ -37,7 +37,6 @@ class ConfirmServiceReservation extends Component {
           startDate,
           endDate,
           price,
-          areaId,
           clientFirstName,
           clientLastName
         } = this.props;
@@ -147,7 +146,6 @@ const styles = StyleSheet.create({
 const mapStateToProps = state => {
   const { commerce, service, employee, startDate, endDate, price, saved, exists, loading } = state.reservation;
   const { firstName: clientFirstName, lastName: clientLastName } = state.clientData;
-  const { area: { areaId } } = state.commerceData;
 
   return {
     commerce,
@@ -156,7 +154,6 @@ const mapStateToProps = state => {
     startDate,
     endDate,
     price,
-    areaId,
     saved,
     exists,
     loading,

@@ -131,7 +131,7 @@ class CommerceReservationDetails extends Component {
 
   onConfirmDelete = () => {
     if (this.renderCancellationReasonError()) {
-      const { id, client, court, service, payment, commerce } = this.state.reservation;
+      const { id, client, court, service, payment } = this.state.reservation;
       let notification = null;
 
       if (client)
@@ -143,15 +143,13 @@ class CommerceReservationDetails extends Component {
           cancellationReason: this.props.cancellationReason
         });
 
-      if (payment) this.props.onCommercePaymentRefund({ payment });
+      if (payment) this.props.onCommercePaymentRefund(payment);
 
       this.props.onCommerceReservationCancel({
-        commerceId: commerce.commerceId,
         reservationId: id,
         clientId: client.profileId,
-        cancellationReason: this.props.cancellationReason,
+        notification,
         navigation: this.props.navigation,
-        notification
       });
 
       this.setState({ optionsVisible: false });

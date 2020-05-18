@@ -3,8 +3,8 @@ import 'firebase/firestore';
 import moment from 'moment';
 import axios from 'axios';
 import { onReservationsCancel } from './ReservationsListActions';
-import { onClientNotificationSend } from './NotificationActions';
-import { NOTIFICATION_TYPES, AREAS } from '../constants';
+import { onNotificationSend } from './NotificationActions';
+import { NOTIFICATION_TYPES } from '../constants';
 import { localDate } from '../utils';
 import {
   ON_SCHEDULE_FORM_OPEN,
@@ -105,11 +105,6 @@ export const onCommerceSchedulesRead = ({ commerceId, selectedDate, date, employ
   try {
     const schedules = await schedulesRead({ commerceId, selectedDate, date, employeeId });
 
-    // schedules.push({
-    //   ...schedule,
-    //   employeeName: `${firstName} ${lastName}`,
-    // });
-
     dispatch({ type: ON_ACTIVE_SCHEDULES_READ, payload: schedules });
   } catch (error) {
     dispatch({ type: ON_ACTIVE_SCHEDULES_READ_FAIL });
@@ -121,11 +116,8 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
 
   const {
     commerceId,
-    scheduleId,
     cards,
     reservationMinLength,
-    reservationDayPeriod,
-    reservationMinCancelTime,
     startDate,
     endDate,
     schedules,
@@ -133,7 +125,7 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
     employeeId,
   } = scheduleData;
 
-  const requests = [];
+  let requests = [];
 
   schedules.forEach(schedule => {
     if (schedule.startDate < startDate && (!schedule.endDate || startDate < schedule.endDate)) {
@@ -158,16 +150,9 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
       startDate: localDate(startDate),
       endDate: endDate ? localDate(endDate) : null,
       employeeId,
-      reservationMinLength,
-      // reservationDayPeriod,
-      // reservationMinCancelTime,
+      reservationMinLength
     };
 
-    // if (employeeId) {
-    //   newScheduleObject = { ...newScheduleObject, employeeId };
-    // }
-
-    // new schedule creation
     const newSchedule = await axios.post(`${backendUrl}/api/schedules/create/`, newScheduleObject);
 
     cards.forEach(card => {
@@ -183,13 +168,12 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
       }));
     });
 
+    requests = onReservationsCancel(reservationsToCancel, requests);
+
     await axios.all(requests);
 
-    // reservations cancel
-    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
-
     reservationsToCancel.forEach(res => {
-      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+      if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 
     dispatch({ type: ON_SCHEDULE_CREATED });
@@ -201,24 +185,25 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
   }
 };
 
-export const onScheduleDelete = ({ commerceId, schedule, endDate, reservationsToCancel }) => async dispatch => {
+export const onScheduleDelete = ({ schedule, endDate, reservationsToCancel }) => async dispatch => {
 
   try {
+    let requests = [];
+
     if (endDate <= schedule.startDate) {
-      // si se está elimiando un schedule que no estaba en vigencia todavía sin reservas o
-      // cancelando las reservas si es que tenía, se le hace una baja lógica
-      await axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`);
+      // si se está elimiando un schedule que no estaba en vigencia todavía sin reservas o cancelando las reservas si es que tenía
+      requests.push(axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`));
     } else {
-      // si se está eliminando un schedule que ya estaba en vigencia o uno que tiene reservas
-      // sin cancelarlas, se le establece una fecha de fin de vigencia lo más pronto posible
-      await axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) });
+      // si se está eliminando un schedule que ya estaba en vigencia o uno que tiene reservas sin cancelarlas
+      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) }));
     }
 
-    // reservations cancel
-    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    requests = onReservationsCancel(reservationsToCancel, requests);
+
+    await axios.all(requests);
 
     reservationsToCancel.forEach(res => {
-      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+      if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 
     dispatch({ type: ON_SCHEDULE_CREATED });

@@ -1,22 +1,9 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
+import axios from 'axios';
 import { ON_ROLES_READ } from './types';
 
-export const onRolesRead = () => dispatch => {
-  const db = firebase.firestore();
-  let roles = [];
+import getEnvVars from '../../environment';
+const { backendUrl } = getEnvVars();
 
-  db.collection('Roles')
-    .where('softDelete', '==', null)
-    .get()
-    .then(snapshot => {
-      snapshot.forEach(doc => {
-        roles.push({
-          key: doc.id,
-          label: doc.data().name,
-          value: { roleId: doc.id, name: doc.data().name }
-        });
-      });
-      dispatch({ type: ON_ROLES_READ, payload: roles });
-    });
+export const onRolesRead = () => dispatch => {
+  axios.get(`${backendUrl}/api/employees/roles/id/`).then(response => dispatch({ type: ON_ROLES_READ, payload: response.data })).catch(error => console.error(errror));
 };

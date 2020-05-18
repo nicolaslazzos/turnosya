@@ -1,9 +1,7 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import moment from 'moment';
 import axios from 'axios';
 import { onReservationsCancel } from './ReservationsListActions';
-import { onClientNotificationSend } from './NotificationActions';
+import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { localDate } from '../utils';
 import {
@@ -66,18 +64,11 @@ export const onCourtCreate = ({ name, description, courtTypeId, groundTypeId, pr
 };
 
 export const isCourtDisabledOnSlot = (court, slot) => {
-  // esta no es una action pero la clavé acá porque la uso en varios componentes
-  // y no me parecía ponerla en utils, de última vermos donde ubicarla
+  // esta no es una action pero la clavé acá porque la uso en varios componentes y no me parecía ponerla en utils, de última vermos donde ubicarla
   const { disabledTo, disabledFrom } = court;
   const { startDate, endDate } = slot;
 
-  if (disabledFrom) {
-    return (
-      ((!disabledTo || disabledTo >= endDate) && disabledFrom < endDate) ||
-      (disabledTo && disabledTo < endDate && disabledTo > startDate)
-    );
-  }
-
+  if (disabledFrom) return (((!disabledTo || disabledTo >= endDate) && disabledFrom < endDate) || (disabledTo && disabledTo < endDate && disabledTo > startDate));
   return false;
 };
 
@@ -92,20 +83,22 @@ const formatCourt = court => {
 export const onCourtsRead = ({ commerceId, courtTypeId }) => dispatch => {
   dispatch({ type: ON_COURT_READING });
 
-  axios.get(`${backendUrl}/api/courts/`, { params: { commerceId, courtTypeId: courtTypeId || '' } })
+  axios.get(`${backendUrl}/api/courts/`, { params: { commerceId, courtTypeId: courtTypeId || null } })
     .then(response => dispatch({ type: ON_COURT_READ, payload: response.data.map(formatCourt) }))
     .catch(error => console.error(error));
 };
 
-export const onCourtDelete = ({ id, commerceId, reservationsToCancel }) => async dispatch => {
+export const onCourtDelete = ({ courtId, reservationsToCancel }) => async dispatch => {
   try {
-    axios.patch(`${backendUrl}/api/courts/update/${id}/`, { softDelete: localDate() });
+    let requests = [];
 
-    // reservations cancel
-    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    requests.push(axios.patch(`${backendUrl}/api/courts/update/${courtId}/`, { softDelete: localDate() }));
+    requests = onReservationsCancel(reservationsToCancel, requests);
+
+    await axios.all(requests);
 
     reservationsToCancel.forEach(res => {
-      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+      if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 
     dispatch({ type: ON_COURT_DELETE });
@@ -132,9 +125,10 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
   } = courtData;
 
   try {
+    let requests = [];
     // dispatch({ type: ON_COURT_EXISTS });
 
-    axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
+    requests.push(axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
       name,
       description,
       courtTypeId,
@@ -144,13 +138,14 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       lightHour,
       disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
       disabledTo: disabledTo ? localDate(disabledTo) : null
-    });
+    }));
 
-    // reservations cancel
-    // await onReservationsCancel(db, batch, commerceId, reservationsToCancel);
+    requests = onReservationsCancel(reservationsToCancel, requests);
+
+    axios.all(requests);
 
     reservationsToCancel.forEach(res => {
-      if (res.client) onClientNotificationSend(res.notification, res.client.profileId, NOTIFICATION_TYPES.NOTIFICATION);
+      if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 
     dispatch({ type: ON_COURT_UPDATE });

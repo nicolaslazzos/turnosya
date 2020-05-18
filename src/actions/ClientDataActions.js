@@ -68,10 +68,7 @@ export const onUserRead = (profileId = firebase.auth().currentUser.uid) => async
 
   try {
     const response = await axios.get(`${backendUrl}/api/profiles/${profileId}/`);
-    dispatch({
-      type: ON_USER_READ,
-      payload: response.data
-    });
+    dispatch({ type: ON_USER_READ, payload: response.data });
   } catch (error) {
     console.log(error)
     dispatch({ type: ON_USER_READ_FAIL });
@@ -104,9 +101,9 @@ export const onUserUpdate = ({ firstName, lastName, phone, province, profilePict
       profilePicture: url ? url : profilePicture
     });
 
-    dispatch({ type: ON_USER_UPDATED, payload: url ? url : profilePicture });
+    dispatch({ type: ON_USER_UPDATED, payload: url || profilePicture });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     dispatch({ type: ON_USER_UPDATE_FAIL });
   } finally {
     profilePicture.close && profilePicture.close();
@@ -115,8 +112,6 @@ export const onUserUpdate = ({ firstName, lastName, phone, province, profilePict
 
 export const onUserDelete = password => {
   const { currentUser } = firebase.auth();
-  // const db = firebase.firestore();
-  // const batch = db.batch();
 
   return dispatch => {
     dispatch({ type: ON_USER_DELETING });
@@ -126,29 +121,20 @@ export const onUserDelete = password => {
         dispatch({ type: ON_REAUTH_SUCCESS });
 
         try {
-          await axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, {
-            softDelete: localDate()
+          const requests = [];
+          requests.push(axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, { softDelete: localDate() }));
+
+          // esto se deberia hacer automaticamente en el backend al eliminar el usuario
+          const reservations = await axios.get(`${backendUrl}/api/reservations/`, { params: { clientId: currentUser.uid, startDate: localDate() } });
+          reservations.data.forEach(reservation => {
+            requests.push(axios.patch(`${backendUrl}/api/reservations/update/${reservation.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
           });
 
-          // const workplaces = await db
-          //   .collection(`Profiles/${currentUser.uid}/Workplaces`)
-          //   .where('softDelete', '==', null)
-          //   .get();
+          const employees = await axios.get(`${backendUrl}/api/employees/`, { params: { profileId: currentUser.uid } });
+          employees.data.forEach(employee => requests.push(axios.patch(`${backendUrl}/api/employees/update/${employee.id}/`, { softDelete: localDate() })));
 
-          // for await (const workplace of workplaces.docs) {
-          //   const employees = await db
-          //     .collection(`Commerces/${workplace.data().commerceId}/Employees`)
-          //     .where('softDelete', '==', null)
-          //     .where('profileId', '==', currentUser.uid)
-          //     .get();
-
-          //   employees.forEach(employee => {
-          //     batch.update(employee.ref, { softDelete: new Date() });
-          //   });
-          // }
-
-          // await batch.commit();
-          // await currentUser.delete();
+          await axios.all(requests);
+          await currentUser.delete();
 
           dispatch({ type: ON_USER_DELETED });
         } catch (error) {
@@ -164,9 +150,7 @@ export const onUserDelete = password => {
 
 export const onUserWorkplacesRead = () => dispatch => {
   const profileId = firebase.auth().currentUser.uid;
-
-  axios.get(`${backendUrl}/api/workplaces/`, { params: { profileId } })
-  .then(response => dispatch({ type: ON_WORKPLACES_READ, payload: response.data }));
+  axios.get(`${backendUrl}/api/workplaces/`, { params: { profileId } }).then(response => dispatch({ type: ON_WORKPLACES_READ, payload: response.data }));
 };
 
 export const onUserPasswordUpdate = ({ password, newPassword }, navigation) => {

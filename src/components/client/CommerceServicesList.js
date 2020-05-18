@@ -7,7 +7,7 @@ import { onServicesRead, onReservationValueChange } from '../../actions';
 
 class CommerceServicesList extends Component {
   componentDidMount() {
-    this.props.onServicesRead({ commerceId: this.props.commerce.objectID, employeeId: this.props.employee ? this.props.employee.id : null });
+    this.props.onServicesRead({ commerceId: this.props.commerce.commerceId, employeeId: this.props.employee ? this.props.employee.id : null });
   }
 
   onServicePress = service => {

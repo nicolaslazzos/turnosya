@@ -9,7 +9,6 @@ import {
   onEmployeeValuesReset,
   onRolesRead,
   onUserByEmailSearch,
-  onEmployeeInfoUpdate,
   onEmployeeInvite,
   onEmployeeUpdate
 } from '../../actions';
@@ -26,17 +25,7 @@ class EmployeeForm extends Component {
     };
   }
 
-  static navigationOptions = ({ navigation }) => {
-    const editing = navigation.getParam('editing');
-
-    return {
-      headerRight: editing ? <IconButton icon="md-refresh" onPress={navigation.getParam('onUpdatePress')} /> : null
-    };
-  };
-
   componentDidMount() {
-    if (this.state.editing) this.props.navigation.setParams({ onUpdatePress: this.onUpdatePress });
-
     this.props.onRolesRead();
   }
 
@@ -44,18 +33,9 @@ class EmployeeForm extends Component {
     this.props.onEmployeeValuesReset();
   }
 
-  onUpdatePress = () => {
-    this.props.onEmployeeInfoUpdate(this.props.email);
-  };
-
   onEmailValueChange = email => {
     this.props.firstName
-      ? this.props.onEmployeeValueChange({
-          firstName: '',
-          lastName: '',
-          phone: '',
-          email
-        })
+      ? this.props.onEmployeeValueChange({ firstName: '', lastName: '', phone: '', email })
       : this.props.onEmployeeValueChange({ email: email.trim() });
   };
 
@@ -63,11 +43,8 @@ class EmployeeForm extends Component {
     const {
       commerceId,
       commerceName,
-      email,
       firstName,
-      lastName,
-      phone,
-      role,
+      roleId,
       profileId,
       employeeId,
       visible,
@@ -80,27 +57,21 @@ class EmployeeForm extends Component {
         // Si se cargó un usuario y es empleado aca entonces notificar
         this.props.onEmployeeValueChange({ emailError: 'Este usuario ya es empleado de su negocio' });
       // Si se cargó un usuario y no es empleado aca entonces guardarlo
-      else if (role.name)
+      else if (roleId)
         if (this.state.editing)
-          this.props.onEmployeeUpdate(
-            { commerceId, employeeId, firstName, lastName, phone, role, visible },
-            navigation
-          );
+          this.props.onEmployeeUpdate({ employeeId, roleId, visible }, navigation);
         else
-          this.props.onEmployeeInvite(
-            { commerceId, commerceName, email, firstName, lastName, phone, role, visible, profileId },
-            navigation
-          );
+          this.props.onEmployeeInvite({ commerceId, commerceName, roleId, visible, profileId }, navigation);
     } else {
       this.props.onEmployeeValueChange({ emailError: 'Debe cargar un usuario antes de guardar' });
     }
   };
 
   onRoleDataValidate = () => {
-    const { role } = this.props;
+    const { roleId } = this.props;
 
-    if (role.name && this.state.roleError) this.setState({ roleError: '' });
-    else if (!role.name && !this.state.roleError)
+    if (roleId && this.state.roleError) this.setState({ roleError: '' });
+    else if (!roleId && !this.state.roleError)
       this.setState({ roleError: 'Debe especificar un rol para el empleado' });
   };
 
@@ -111,9 +82,9 @@ class EmployeeForm extends Component {
 
   onRolesComboFilter = () => {
     return this.props.roles.filter(role => {
-      return this.props.role.roleId === ROLES.OWNER.roleId
-        ? ROLES[role.value.roleId].value <= this.props.currentRole.value
-        : ROLES[role.value.roleId].value <= this.props.currentRole.value && role.value.roleId !== ROLES.OWNER.roleId;
+      return this.props.roleId === ROLES.OWNER.roleId
+        ? ROLES[role.value].value <= this.props.currentRole.value
+        : ROLES[role.value].value <= this.props.currentRole.value && role.value !== ROLES.OWNER.roleId;
     });
   };
 
@@ -143,11 +114,7 @@ class EmployeeForm extends Component {
                 rightIcon={
                   <RNEButton
                     type="clear"
-                    icon={{
-                      name: 'md-search',
-                      type: 'ionicon',
-                      color: MAIN_COLOR
-                    }}
+                    icon={{ name: 'md-search', type: 'ionicon', color: MAIN_COLOR }}
                     loading={this.props.emailLoading}
                     onPress={() => this.props.onUserByEmailSearch(this.props.email, this.props.commerceId)}
                     loadingProps={{ color: MAIN_COLOR }}
@@ -173,9 +140,9 @@ class EmployeeForm extends Component {
               <Picker
                 title={'Rol:'}
                 placeholder={{ value: null, label: 'Seleccionar...' }}
-                value={this.props.role}
+                value={this.props.roleId}
                 items={this.onRolesComboFilter()}
-                onValueChange={role => this.props.onEmployeeValueChange({ role: role || {} })}
+                onValueChange={roleId => this.props.onEmployeeValueChange({ roleId })}
                 errorMessage={this.state.roleError}
                 disabled={this.props.email === firebase.auth().currentUser.email}
               />
@@ -242,7 +209,7 @@ const mapStateToProps = state => {
     lastName,
     profileId,
     id,
-    role,
+    roleId,
     visible,
     emailLoading,
     emailError,
@@ -260,7 +227,7 @@ const mapStateToProps = state => {
     lastName,
     profileId,
     employeeId: id,
-    role,
+    roleId,
     roles,
     visible,
     currentRole,
@@ -276,7 +243,6 @@ export default connect(mapStateToProps, {
   onEmployeeValuesReset,
   onRolesRead,
   onUserByEmailSearch,
-  onEmployeeInfoUpdate,
   onEmployeeInvite,
   onEmployeeUpdate
 })(EmployeeForm);

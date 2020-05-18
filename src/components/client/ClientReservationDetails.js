@@ -113,7 +113,7 @@ class ClientReservationDetails extends Component {
     if (this.props.clientRating === 0) {
       Toast.show({ text: 'Debe primero especificar una calificación.' });
     } else {
-      if (this.props.commerceReviewId) {
+      if (this.state.reservation.clientReview) {
         // Si tenia calificacion actualizarla
         this.props.onClientReviewUpdate({
           reviewId: this.state.reservation.clientReview.id,
@@ -145,8 +145,9 @@ class ClientReservationDetails extends Component {
     this.props.onClientReservationCancel({
       reservationId: id,
       commerceId,
+      employeeId: employee ? employee.id : null,
       navigation: this.props.navigation,
-      notification: { ...notification, employeeId: employee.id }
+      notification
     });
 
     this.setState({ optionsVisible: false });
