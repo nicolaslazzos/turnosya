@@ -22,9 +22,9 @@ class ServicesListItem extends Component {
   };
 
   onConfirmDeletePress = () => {
-    const { service, commerceId } = this.props;
+    const { service } = this.props;
 
-    this.props.onServiceDelete({ id: service.id, commerceId });
+    this.props.onServiceDelete(service.id);
     this.setState({ deleteVisible: !this.deleteVisible });
   };
 
@@ -41,7 +41,7 @@ class ServicesListItem extends Component {
   };
 
   onBadgePress = () => {
-    const { service, commerceId, employeeId } = this.props;
+    const { service, employeeId } = this.props;
     let employeesIds = [];
 
     if (this.isEmployeeOfferingService()) {
@@ -50,16 +50,10 @@ class ServicesListItem extends Component {
       employeesIds = [...service.employeesIds, employeeId];
     }
 
-    onServiceOfferingUpdate({
-      id: service.id,
-      employeesIds,
-      commerceId
-    });
+    onServiceOfferingUpdate({ id: service.id, employeesIds });
   };
 
-  isEmployeeOfferingService = () => {
-    return this.props.service.employeesIds.includes(this.props.employeeId);
-  };
+  isEmployeeOfferingService = () => this.props.service.employeesIds.includes(this.props.employeeId);
 
   render() {
     const { name, duration, price, id } = this.props.service;

@@ -1,5 +1,3 @@
-import firebase from 'firebase/app';
-import 'firebase/firestore';
 import axios from 'axios';
 import { localDate } from '../utils';
 import {
@@ -44,22 +42,16 @@ export const onServicesRead = ({ commerceId, employeeId }) => dispatch => {
     .catch(error => console.error(error));
 };
 
-export const onServiceDelete = ({ id, commerceId }) => dispatch => {
-  axios.patch(`${backendUrl}/api/services/update/${id}/`, { softDelete: localDate() })
+export const onServiceDelete = serviceId => dispatch => {
+  axios.patch(`${backendUrl}/api/services/update/${serviceId}/`, { softDelete: localDate() })
     .then(() => dispatch({ type: ON_SERVICE_DELETE }))
     .catch(error => console.log(error));
 };
 
-export const onServiceUpdate = ({ id, name, duration, price, description, employeesIds, commerceId }, navigation) => dispatch => {
+export const onServiceUpdate = ({ id, name, duration, price, description, employeesIds }, navigation) => dispatch => {
   dispatch({ type: ON_SERVICE_FORM_SUBMIT });
 
-  axios.patch(`${backendUrl}/api/services/update/${id}/`, {
-    name,
-    description,
-    duration,
-    price,
-    employeesIds
-  })
+  axios.patch(`${backendUrl}/api/services/update/${id}/`, { name, description, duration, price, employeesIds })
     .then(() => {
       // dispatch({ type: ON_SERVICE_EXISTS });
       dispatch({ type: ON_SERVICE_UPDATE });
@@ -68,6 +60,6 @@ export const onServiceUpdate = ({ id, name, duration, price, description, employ
     .catch(error => console.error(error));
 };
 
-export const onServiceOfferingUpdate = ({ id, employeesIds, commerceId }) => {
+export const onServiceOfferingUpdate = ({ id, employeesIds }) => {
   axios.patch(`${backendUrl}/api/services/update/${id}/`, { employeesIds });
 }

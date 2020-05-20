@@ -72,9 +72,13 @@ const schedulesRead = async ({ commerceId, selectedDate, date, employeeId }) => 
 
     for (const schedule of response.data) {
       let selectedDays = [];
+      const settingsResponse = await axios.get(`${backendUrl}/api/schedules/settings/`, { params: { commerceId, employeeId } });
+      const setting = settingsResponse.data.length ? settingsResponse.data[0] : {};
+
       const cards = await axios.get(`${backendUrl}/api/schedules/workshifts/`, { params: { scheduleId: schedule.id } });
       cards.data.forEach(card => { selectedDays = [...selectedDays, ...card.days] });
-      schedules.push({ ...formatSchedule(schedule), cards: cards.data, selectedDays });
+
+      schedules.push({ ...formatSchedule(schedule), cards: cards.data, selectedDays, ...setting });
     }
 
     return schedules;
@@ -214,45 +218,19 @@ export const onScheduleDelete = ({ schedule, endDate, reservationsToCancel }) =>
   }
 };
 
-export const onScheduleConfigurationSave = (
-  { reservationDayPeriod, reservationMinCancelTime, commerceId, date, employeeId },
-  navigation
-) => async dispatch => {
+export const onScheduleConfigurationSave = ({ scheduleSettingId, commerceId, employeeId, reservationDayPeriod, reservationMinCancelTime }, navigation) => async dispatch => {
   dispatch({ type: ON_SCHEDULE_CONFIG_UPDATING });
 
-  const db = firebase.firestore();
-  const batch = db.batch();
-  const schedulesRef = db.collection(`Commerces/${commerceId}/Schedules`);
-  const updateObj = { reservationDayPeriod, reservationMinCancelTime };
-
   try {
-    let snapshot = await schedulesRef
-      .where('softDelete', '==', null)
-      .where('endDate', '>=', date.toDate())
-      .orderBy('endDate')
-      .get();
+    let response;
 
-    if (!snapshot.empty) {
-      snapshot.forEach(doc => {
-        if (!employeeId || (employeeId === doc.data().employeeId))
-          batch.update(doc.ref, updateObj)
-      });
+    if (scheduleSettingId) {
+      response = await axios.patch(`${backendUrl}/api/schedules/settings/update/${scheduleSettingId}/`, { reservationDayPeriod, reservationMinCancelTime });
+    } else {
+      response = await axios.post(`${backendUrl}/api/schedules/settings/create/`, { commerceId, employeeId, reservationDayPeriod, reservationMinCancelTime });
     }
 
-    snapshot = await schedulesRef
-      .where('softDelete', '==', null)
-      .where('endDate', '==', null)
-      .get();
-
-    if (!snapshot.empty) {
-      snapshot.forEach(doc => {
-        if (!employeeId || (employeeId === doc.data().employeeId))
-          batch.update(doc.ref, updateObj)
-      });
-    }
-
-    await batch.commit();
-
+    dispatch({ type: ON_SCHEDULE_VALUE_CHANGE, payload: { scheduleSettingId: response.data.id } });
     dispatch({ type: ON_SCHEDULE_CONFIG_UPDATED });
     navigation.goBack();
   } catch (error) {

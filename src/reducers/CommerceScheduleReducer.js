@@ -41,6 +41,7 @@ const INITIAL_WORKSHIFTS = {
 const INITIAL_STATE = {
   ...INITIAL_WORKSHIFTS,
   schedules: [],
+  scheduleSettingId: null,
   reservationDayPeriod: 14,
   reservationMinCancelTime: 2,
   error: null,

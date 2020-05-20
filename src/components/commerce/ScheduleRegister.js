@@ -371,11 +371,8 @@ class ScheduleRegister extends Component {
   onScheduleSave = async () => {
     let {
       commerceId,
-      scheduleId,
       cards,
       reservationMinLength,
-      reservationDayPeriod,
-      reservationMinCancelTime,
       startDate,
       endDate,
       schedules,
@@ -702,8 +699,6 @@ const mapStateToProps = state => {
     cards,
     selectedDays,
     reservationMinLength,
-    reservationDayPeriod,
-    reservationMinCancelTime,
     startDate,
     endDate,
     schedules,
@@ -712,11 +707,7 @@ const mapStateToProps = state => {
   } = state.commerceSchedule;
   const { nextReservations } = state.reservationsList;
   const loadingReservations = state.reservationsList.loading;
-  const {
-    commerceId,
-    area: { areaId },
-    name: commerceName
-  } = state.commerceData;
+  const { commerceId, area: { areaId }, name: commerceName } = state.commerceData;
   const employeeId = areaId === AREAS.hairdressers ? state.roleData.employeeId : null;
 
   return {
@@ -725,8 +716,6 @@ const mapStateToProps = state => {
     selectedDays,
     commerceId,
     reservationMinLength,
-    reservationMinCancelTime,
-    reservationDayPeriod,
     startDate,
     endDate,
     schedules,

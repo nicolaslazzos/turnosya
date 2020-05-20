@@ -9,7 +9,7 @@ import {
   onCommerceReportValueChange,
   onCommerceReportValueReset,
   onMonthlyReviewsReadByYear,
-  yearsWithReview
+  yearsOfActivity
 } from '../../../actions';
 
 const chartHeight = Math.round(Dimensions.get('window').height) / 1.35;
@@ -17,7 +17,7 @@ const chartHeight = Math.round(Dimensions.get('window').height) / 1.35;
 class MonthlyReviewsChart extends Component {
   constructor(props) {
     super(props);
-    props.yearsWithReview(props.commerceId);
+    props.yearsOfActivity(props.commerceId);
     props.onMonthlyReviewsReadByYear(props.commerceId, props.selectedYear);
 
     this.state = {
@@ -150,5 +150,5 @@ export default connect(mapStateToProps, {
   onCommerceReportValueChange,
   onCommerceReportValueReset,
   onMonthlyReviewsReadByYear,
-  yearsWithReview
+  yearsOfActivity
 })(MonthlyReviewsChart);

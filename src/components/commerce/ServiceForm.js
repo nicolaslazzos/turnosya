@@ -26,25 +26,24 @@ class ServiceForm extends Component {
 
         this.props.onServiceUpdate(
           {
+            id,
+            employeesIds,
             name,
             duration,
             price,
             description,
-            id,
-            commerceId,
-            employeesIds
           },
           navigation
         );
       } else {
         this.props.onServiceCreate(
           {
+            commerceId,
+            employeesIds: [employeeId],
             name,
             duration,
             price,
             description,
-            commerceId,
-            employeesIds: [employeeId]
           },
           navigation
         );
