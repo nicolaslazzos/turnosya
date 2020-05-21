@@ -15,20 +15,28 @@ import {
 import getEnvVars from '../../environment';
 const { backendUrl } = getEnvVars();
 
-export const onCommerceReviewValueChange = payload => {
-  return { type: ON_COMMERCE_REVIEW_VALUE_CHANGE, payload };
-};
+export const onCommerceReviewValueChange = payload => ({ type: ON_COMMERCE_REVIEW_VALUE_CHANGE, payload });
 
 export const onCommerceReviewCreate = ({ clientId, rating, comment, reservationId }) => async dispatch => {
   // review del cliente al negocio
   dispatch({ type: ON_COMMERCE_REVIEW_SAVING });
 
   try {
-    const review = await axios.post(`${backendUrl}/api/reviews/create/`, { clientId, rating, comment, reviewDate: localDate() });
-    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: review.data.id });
-    // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
+    const client = await axios.get(`${backendUrl}/api/profiles/${clientId}/`);
 
-    dispatch({ type: ON_COMMERCE_REVIEW_CREATED, payload: review.data.id });
+    const requests = [];
+
+    requests.push(axios.post(`${backendUrl}/api/reviews/create/`, { clientId, comment, rating, reviewDate: localDate() }));
+    requests.push(axios.patch(`${backendUrl}/api/profiles/update/${clientId}/`, {
+      ratingTotal: client.data.ratingTotal + rating,
+      ratingCount: client.data.ratingCount + 1
+    }));
+
+    let responses = await axios.all(requests);
+
+    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: responses[0].data.id });
+
+    dispatch({ type: ON_COMMERCE_REVIEW_CREATED, payload: responses[0].data.id });
   } catch (error) {
     console.error(error);
     dispatch({ type: ON_COMMERCE_REVIEW_SAVE_FAIL });
@@ -38,23 +46,41 @@ export const onCommerceReviewCreate = ({ clientId, rating, comment, reservationI
 export const onCommerceReviewUpdate = ({ reviewId, rating, comment }) => async dispatch => {
   dispatch({ type: ON_COMMERCE_REVIEW_SAVING });
 
-  // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
+  try {
+    const review = await axios.get(`${backendUrl}/api/reviews/${reviewId}/`);
+    const client = await axios.get(`${backendUrl}/api/profiles/${review.data.clientId}/`);
 
-  axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { rating, comment, reviewDate: localDate() })
-    .then(() => dispatch({ type: ON_COMMERCE_REVIEW_SAVED }))
-    .catch(() => {
-      console.error(error);
-      dispatch({ type: ON_COMMERCE_REVIEW_SAVE_FAIL })
-    });
+    const requests = [];
+
+    requests.push(axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { comment, rating, reviewDate: localDate() }));
+    requests.push(axios.patch(`${backendUrl}/api/profiles/update/${review.data.clientId}/`, { ratingTotal: client.data.ratingTotal - review.data.rating + rating }));
+
+    await axios.all(requests);
+
+    dispatch({ type: ON_COMMERCE_REVIEW_SAVED });
+  } catch (error) {
+    console.error(error);
+    dispatch({ type: ON_COMMERCE_REVIEW_SAVE_FAIL });
+  }
 };
 
 export const onCommerceReviewDelete = ({ reservationId, reviewId }) => async dispatch => {
   dispatch({ type: ON_COMMERCE_REVIEW_DELETING });
 
   try {
-    await axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { softDelete: localDate() });
-    await axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: null });
-    // await axios.patch(`${backendUrl}/api/commerces/update/${commerceId}/`, { rating }); // esto lo puedo hacer en el create de la review en el back
+    const review = await axios.get(`${backendUrl}/api/reviews/${reviewId}/`);
+    const client = await axios.get(`${backendUrl}/api/commerces/${review.data.clientId}/`);
+
+    const requests = [];
+
+    requests.push(axios.patch(`${backendUrl}/api/reviews/update/${reviewId}/`, { softDelete: localDate() }));
+    requests.push(axios.patch(`${backendUrl}/api/reservations/update/${reservationId}/`, { commerceReviewId: null }));
+    requests.push(axios.patch(`${backendUrl}/api/profiles/update/${review.data.clientId}/`, {
+      ratingTotal: client.data.ratingTotal - review.data.rating,
+      ratingCount: client.data.ratingCount - 1
+    }));
+
+    await axios.all(requests);
 
     dispatch({ type: ON_COMMERCE_REVIEW_DELETED });
   } catch (error) {
@@ -63,6 +89,4 @@ export const onCommerceReviewDelete = ({ reservationId, reviewId }) => async dis
   }
 };
 
-export const onCommerceReviewValuesReset = () => {
-  return { type: ON_COMMERCE_REVIEW_VALUES_RESET };
-};
+export const onCommerceReviewValuesReset = () => ({ type: ON_COMMERCE_REVIEW_VALUES_RESET });
