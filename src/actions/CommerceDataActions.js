@@ -80,6 +80,7 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
 
   try {
     const commerce = await axios.post(`${backendUrl}/api/commerces/create/`, {
+      profileId,
       name,
       cuit,
       email,
@@ -93,25 +94,12 @@ export const onCommerceCreate = (commerceData, navigation) => async dispatch => 
       longitude
     });
 
-    const commerceId = commerce.data.id;
-
-    await axios.patch(`${backendUrl}/api/profiles/update/${profileId}/`, { commerceId });
-
-    const employee = await axios.post(`${backendUrl}/api/employees/create/`, {
-      commerceId,
-      profileId,
-      roleId: ROLES.OWNER.roleId,
-      inviteDate: localDate(),
-      startDate: localDate()
-    });
-
-    dispatch({ type: ON_COMMERCE_VALUE_CHANGE, payload: { commerceId } });
-    dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: ROLES.OWNER, employeeId: employee.id } });
-    dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: employee.id } });
+    dispatch({ type: ON_COMMERCE_VALUE_CHANGE, payload: { commerceId: commerce.data.commerceId } });
+    dispatch({ type: ON_ROLE_ASSIGNED, payload: { role: ROLES.OWNER, employeeId: commerce.data.employeeId } });
+    dispatch({ type: ON_EMPLOYEE_SELECT, payload: { selectedEmployeeId: commerce.data.employeeId } });
     dispatch({ type: ON_COMMERCE_PROFILE_CREATE });
 
     navigation.navigate(`${area.areaId}`);
-    navigation.navigate(`${area.areaId}Calendar`);
   } catch (error) {
     console.error(error);
     dispatch({ type: ON_COMMERCE_CREATE_FAIL, payload: error });
@@ -225,13 +213,13 @@ export const onCommerceDelete = (password, reservationsToCancel, navigation = nu
         let requests = [];
 
         requests.push(axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`));
-        requests = onReservationsCancel(reservationsToCancel, requests);
+        // requests = onReservationsCancel(reservationsToCancel, requests);
 
         await axios.all(requests);
 
-        reservationsToCancel.forEach(res => {
-          if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
-        });
+        // reservationsToCancel.forEach(res => {
+        //   if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
+        // });
 
         dispatch({ type: ON_COMMERCE_DELETED });
         dispatch({ type: ON_CLIENT_DATA_VALUE_CHANGE, payload: { commerceId: null } });

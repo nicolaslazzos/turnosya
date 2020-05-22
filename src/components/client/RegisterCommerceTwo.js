@@ -31,6 +31,7 @@ class RegisterCommerceTwo extends Component {
   onRegisterButtonPress() {
     if (this.validateMinimumData()) {
       const { name, cuit, email, phone, description, area, address, city, province, latitude, longitude } = this.props;
+      
       this.props.onCommerceCreate(
         {
           name,

@@ -182,12 +182,8 @@ class CommerceReservationDetails extends Component {
   };
 
   onDeleteReviewHandler = () => {
-    this.props.onCommerceReviewDelete({
-      reviewId: this.state.reservation.commerceReview.id,
-      reservationId: this.state.reservation.id,
-    });
-
-    this.setState({ confirmDeleteVisible: false });
+    this.props.onCommerceReviewDelete(this.state.reservation.id);
+    this.setState({ confirmDeleteVisible: false, reservation: { ...this.state.reservation, commerceReview: null } });
   };
 
   renderConfirmReviewDelete = () => {
