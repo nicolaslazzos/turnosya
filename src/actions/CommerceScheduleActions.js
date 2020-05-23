@@ -45,14 +45,12 @@ export const onScheduleFormOpen = () => {
 };
 
 const formatSchedule = schedule => {
-  const { reservationDayPeriod, reservationMinLength, startDate, endDate, employeeId } = schedule;
+  const { startDate, endDate, employeeId } = schedule;
 
   return {
     ...schedule,
     startDate: moment(startDate),
     endDate: endDate ? moment(endDate) : null,
-    // reservationDayPeriod,
-    // reservationMinLength,
     employeeId: employeeId || null,
   };
 };
@@ -73,7 +71,7 @@ const schedulesRead = async ({ commerceId, selectedDate, date, employeeId }) => 
     for (const schedule of response.data) {
       let selectedDays = [];
       const settingsResponse = await axios.get(`${backendUrl}/api/schedules/settings/`, { params: { commerceId, employeeId } });
-      const setting = settingsResponse.data.length ? settingsResponse.data[0] : {};
+      const setting = settingsResponse.data.length ? settingsResponse.data[0] : {}; // esto mandarlo directamente desde el serializer del schedule
 
       const cards = await axios.get(`${backendUrl}/api/schedules/workshifts/`, { params: { scheduleId: schedule.id } });
       cards.data.forEach(card => { selectedDays = [...selectedDays, ...card.days] });

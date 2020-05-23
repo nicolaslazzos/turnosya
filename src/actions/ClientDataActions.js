@@ -121,19 +121,14 @@ export const onUserDelete = password => {
         dispatch({ type: ON_REAUTH_SUCCESS });
 
         try {
-          const requests = [];
-          requests.push(axios.patch(`${backendUrl}/api/profiles/update/${currentUser.uid}/`, { softDelete: localDate() }));
+          await axios.delete(`${backendUrl}/api/profiles/delete/${currentUser.uid}/`);
 
-          // esto se deberia hacer automaticamente en el backend al eliminar el usuario
-          const reservations = await axios.get(`${backendUrl}/api/reservations/`, { params: { clientId: currentUser.uid, startDate: localDate() } });
-          reservations.data.forEach(reservation => {
-            requests.push(axios.patch(`${backendUrl}/api/reservations/update/${reservation.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
-          });
+          // aca se deberia notificar al negocio
+          // const reservations = await axios.get(`${backendUrl}/api/reservations/`, { params: { clientId: currentUser.uid, startDate: localDate() } });
+          // reservations.data.forEach(reservation => {
+          //   requests.push(axios.patch(`${backendUrl}/api/reservations/update/${reservation.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
+          // });
 
-          const employees = await axios.get(`${backendUrl}/api/employees/`, { params: { profileId: currentUser.uid } });
-          employees.data.forEach(employee => requests.push(axios.patch(`${backendUrl}/api/employees/update/${employee.id}/`, { softDelete: localDate() })));
-
-          await axios.all(requests);
           await currentUser.delete();
 
           dispatch({ type: ON_USER_DELETED });

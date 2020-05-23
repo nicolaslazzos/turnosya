@@ -90,12 +90,7 @@ export const onCourtsRead = ({ commerceId, courtTypeId }) => dispatch => {
 
 export const onCourtDelete = ({ courtId, reservationsToCancel }) => async dispatch => {
   try {
-    let requests = [];
-
-    requests.push(axios.patch(`${backendUrl}/api/courts/update/${courtId}/`, { softDelete: localDate() }));
-    requests = onReservationsCancel(reservationsToCancel, requests);
-
-    await axios.all(requests);
+    axios.delete(`${backendUrl}/api/courts/delete/${courtId}/`, { params: { reservationsToCancel: reservationsToCancel.map(res => res.id).toString() } });
 
     reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
@@ -125,10 +120,9 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
   } = courtData;
 
   try {
-    let requests = [];
     // dispatch({ type: ON_COURT_EXISTS });
 
-    requests.push(axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
+    await axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
       name,
       description,
       courtTypeId,
@@ -137,12 +131,9 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       lightPrice: parseFloat(lightPrice),
       lightHour,
       disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
-      disabledTo: disabledTo ? localDate(disabledTo) : null
-    }));
-
-    requests = onReservationsCancel(reservationsToCancel, requests);
-
-    axios.all(requests);
+      disabledTo: disabledTo ? localDate(disabledTo) : null,
+      reservationsToCancel: reservationsToCancel.map(res => res.id)
+    })
 
     reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });

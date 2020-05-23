@@ -67,7 +67,7 @@ export const onEmployeeCreate = ({ employeeId, profileId }) => dispatch => {
 export const onEmployeeUpdate = ({ employeeId, roleId, visible }, navigation) => dispatch => {
   dispatch({ type: ON_EMPLOYEE_SAVING });
 
-  axios.patch(`${backendUrl}/api/employees/update/${employeeId}`, { roleId, visible })
+  axios.patch(`${backendUrl}/api/employees/update/${employeeId}/`, { roleId, visible })
     .then(() => {
       dispatch({ type: ON_EMPLOYEE_UPDATED });
       navigation.goBack();
@@ -77,14 +77,10 @@ export const onEmployeeUpdate = ({ employeeId, roleId, visible }, navigation) =>
 
 export const onEmployeeDelete = ({ employeeId, reservationsToCancel }) => async dispatch => {
   try {
-    let requests = [];
+    reservationsToCancel = reservationsToCancel ? reservationsToCancel : [];
+    await axios.delete(`${backendUrl}/api/employees/delete/${employeeId}/`, { params: { reservationsToCancel: reservationsToCancel.map(res => res.id).toString() } });
 
-    requests.push(axios.delete(`${backendUrl}/api/employees/delete/${employeeId}`));
-    requests = onReservationsCancel(reservationsToCancel, requests);
-
-    await axios.all(requests);
-
-    reservationsToCancel && reservationsToCancel.forEach(res => {
+    reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
 

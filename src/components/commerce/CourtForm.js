@@ -355,7 +355,7 @@ class CourtForm extends PureComponent {
     this.setState({ reservationsToCancel: [] });
 
     if (this.validateMinimumData()) {
-      if (false && this.props.disabled && this.props.id) {
+      if (this.props.disabled && this.props.id) {
         this.props.onNextReservationsRead({
           commerceId: this.props.commerceId,
           courtId: this.props.id,
