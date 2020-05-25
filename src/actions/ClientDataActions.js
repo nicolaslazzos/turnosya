@@ -110,7 +110,7 @@ export const onUserUpdate = ({ firstName, lastName, phone, province, profilePict
   }
 };
 
-export const onUserDelete = password => {
+export const onUserDelete = password => { // aca se deberian recibir las reservas a cancelar
   const { currentUser } = firebase.auth();
 
   return dispatch => {

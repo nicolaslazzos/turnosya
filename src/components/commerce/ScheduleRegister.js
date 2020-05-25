@@ -375,7 +375,6 @@ class ScheduleRegister extends Component {
       reservationMinLength,
       startDate,
       endDate,
-      schedules,
       // only hairdressers
       employeeId
     } = this.props;
@@ -398,7 +397,6 @@ class ScheduleRegister extends Component {
         reservationMinLength,
         startDate,
         endDate,
-        schedules,
         reservationsToCancel,
         employeeId
       });

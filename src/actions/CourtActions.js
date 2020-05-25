@@ -133,7 +133,7 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
       disabledTo: disabledTo ? localDate(disabledTo) : null,
       reservationsToCancel: reservationsToCancel.map(res => res.id)
-    })
+    });
 
     reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });

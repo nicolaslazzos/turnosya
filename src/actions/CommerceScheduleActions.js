@@ -127,41 +127,23 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
     employeeId,
   } = scheduleData;
 
-  let requests = [];
-
-  schedules.forEach(schedule => {
-    if (schedule.startDate < startDate && (!schedule.endDate || startDate < schedule.endDate)) {
-      // si se superpone con un schedule que inicia antes, este último termina donde inicia el nuevo
-      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) }));
-    }
-
-    if (schedule.startDate >= startDate && (!endDate || (schedule.endDate && schedule.endDate <= endDate))) {
-      // si un schedule anterior queda dentro del periodo de vigencia del nuevo, se elimina
-      requests.push(axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`));
-    }
-
-    if (endDate && endDate > schedule.startDate && (!schedule.endDate || (endDate && endDate < schedule.endDate)) && schedule.startDate >= startDate) {
-      // si se superpone con un schedule que esta después, este último inicia donde termina el nuevo
-      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { startDate: localDate(endDate) }));
-    }
-  });
-
   try {
-    let newScheduleObject = {
+    let requests = [];
+
+    const schedule = await axios.post(`${backendUrl}/api/schedules/create/`, {
       commerceId,
       startDate: localDate(startDate),
       endDate: endDate ? localDate(endDate) : null,
       employeeId,
-      reservationMinLength
-    };
-
-    const newSchedule = await axios.post(`${backendUrl}/api/schedules/create/`, newScheduleObject);
+      reservationMinLength,
+      reservationsToCancel: reservationsToCancel.map(res => res.id)
+    });
 
     cards.forEach(card => {
       const { days, firstShiftStart, firstShiftEnd, secondShiftStart, secondShiftEnd } = card;
 
       requests.push(axios.post(`${backendUrl}/api/schedules/workshifts/create/`, {
-        scheduleId: newSchedule.data.id,
+        scheduleId: schedule.data.id,
         days,
         firstShiftStart,
         firstShiftEnd,
@@ -169,8 +151,6 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
         secondShiftEnd
       }));
     });
-
-    requests = onReservationsCancel(reservationsToCancel, requests);
 
     await axios.all(requests);
 
@@ -190,19 +170,7 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
 export const onScheduleDelete = ({ schedule, endDate, reservationsToCancel }) => async dispatch => {
 
   try {
-    let requests = [];
-
-    if (endDate <= schedule.startDate) {
-      // si se está elimiando un schedule que no estaba en vigencia todavía sin reservas o cancelando las reservas si es que tenía
-      requests.push(axios.delete(`${backendUrl}/api/schedules/delete/${schedule.id}/`));
-    } else {
-      // si se está eliminando un schedule que ya estaba en vigencia o uno que tiene reservas sin cancelarlas
-      requests.push(axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(startDate) }));
-    }
-
-    requests = onReservationsCancel(reservationsToCancel, requests);
-
-    await axios.all(requests);
+    await axios.patch(`${backendUrl}/api/schedules/update/${schedule.id}/`, { endDate: localDate(endDate), reservationsToCancel: reservationsToCancel.map(res => res.id) });
 
     reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });

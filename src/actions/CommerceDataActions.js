@@ -210,7 +210,7 @@ export const onCommerceDelete = (password, reservationsToCancel, navigation = nu
       dispatch({ type: ON_REAUTH_SUCCESS });
 
       try {
-        await axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`);
+        await axios.delete(`${backendUrl}/api/commerces/delete/${commerceId}`, { params: { reservationsToCancel: reservationsToCancel.map(res => res.id).toString() } });
 
         reservationsToCancel.forEach(res => {
           if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
