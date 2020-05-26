@@ -5,7 +5,7 @@ import { ListItem, Divider } from 'react-native-elements';
 import { connect } from 'react-redux';
 import { Menu, MenuItem, Badge, PermissionsAssigner } from '../common';
 import { SUCCESS_COLOR, MAIN_COLOR, ROLES } from '../../constants';
-import { onServiceDelete, onFormOpen, onServiceOfferingUpdate } from '../../actions';
+import { onServiceDelete, onFormOpen, onServiceOfferingUpdate, onServiceValueChange } from '../../actions';
 
 class ServicesListItem extends Component {
   state = { optionsVisible: false, deleteVisible: false };
@@ -30,10 +30,9 @@ class ServicesListItem extends Component {
 
   onUpdatePress = () => {
     this.props.onFormOpen();
-    const navigateAction = NavigationActions.navigate({
-      routeName: 'serviceForm',
-      params: { service: this.props.service, title: 'Editar Servicio' }
-    });
+    this.props.onServiceValueChange(this.props.service);
+
+    const navigateAction = NavigationActions.navigate({ routeName: 'serviceForm', params: { title: 'Editar Servicio' } });
 
     this.setState({ optionsVisible: !this.state.optionsVisible });
 
@@ -108,4 +107,4 @@ class ServicesListItem extends Component {
   }
 }
 
-export default connect(null, { onServiceDelete, onFormOpen })(ServicesListItem);
+export default connect(null, { onServiceDelete, onFormOpen, onServiceValueChange })(ServicesListItem);

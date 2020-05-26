@@ -29,11 +29,7 @@ export const onClientReservationCreate = ({ commerceId, employeeId, courtId, ser
   const clientId = firebase.auth().currentUser.uid;
 
   try {
-    // if ((courtId && await courtReservationExists({ commerceId, courtId, startDate })) ||
-    //   (employeeId && await serviceReservationExists({ commerceId, employeeId, startDate, endDate })))
-    //   return dispatch({ type: ON_RESERVATION_EXISTS });
-
-    await axios.post(`${backendUrl}/api/reservations/create/`, {
+    const response = await axios.post(`${backendUrl}/api/reservations/create/`, {
       commerceId,
       clientId,
       employeeId,
@@ -45,6 +41,8 @@ export const onClientReservationCreate = ({ commerceId, employeeId, courtId, ser
       endDate: localDate(endDate),
       price: parseFloat(price)
     });
+
+    if (response.data[ON_RESERVATION_EXISTS]) return dispatch({ type: ON_RESERVATION_EXISTS });
 
     notification && onNotificationSend({ notification, commerceId, employeeId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
 
@@ -59,11 +57,7 @@ export const onCommerceReservationCreate = ({ commerceId, employeeId, courtId, s
   dispatch({ type: ON_RESERVATION_CREATING });
 
   try {
-    // if ((courtId && await courtReservationExists({ commerceId, courtId, startDate })) ||
-    //   (employeeId && await serviceReservationExists({ commerceId, employeeId, startDate, endDate })))
-    //   return dispatch({ type: ON_RESERVATION_EXISTS });
-
-    await axios.post(`${backendUrl}/api/reservations/create/`, {
+    const response = await axios.post(`${backendUrl}/api/reservations/create/`, {
       commerceId,
       employeeId,
       courtId,
@@ -76,6 +70,8 @@ export const onCommerceReservationCreate = ({ commerceId, employeeId, courtId, s
       endDate: localDate(endDate),
       price: parseFloat(price)
     });
+
+    if (response.data[ON_RESERVATION_EXISTS]) return dispatch({ type: ON_RESERVATION_EXISTS });
 
     notification && onNotificationSend({ notification, commerceId, employeeId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
 

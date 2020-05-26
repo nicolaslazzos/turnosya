@@ -124,14 +124,3 @@ export const onCommercePaymentRefund = payment => async () => {
     console.error(error);
   }
 };
-
-export const onReservationsCancel = (reservations, requests) => {
-  // const mPagoToken = store.getState().commerceData.mPagoToken;
-
-  reservations.forEach(res => {
-    requests.push(axios.patch(`${backendUrl}/api/reservations/update/${res.id}/`, { stateId: 'canceled', cancellationDate: localDate() }));
-    if (res.payment) onCommercePaymentRefund(res.payment)();
-  });
-
-  return requests;
-};

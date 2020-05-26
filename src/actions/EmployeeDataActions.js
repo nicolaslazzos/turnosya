@@ -4,7 +4,6 @@ import axios from 'axios';
 import { onNotificationSend } from './NotificationActions';
 import { onUserWorkplacesRead } from './ClientDataActions';
 import { NOTIFICATION_TYPES } from '../constants';
-import { onReservationsCancel } from './ReservationsListActions';
 import { localDate } from '../utils';
 import {
   ON_EMPLOYEE_VALUE_CHANGE,

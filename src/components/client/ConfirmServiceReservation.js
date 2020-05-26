@@ -116,7 +116,7 @@ class ConfirmServiceReservation extends Component {
         <ServiceReservationDetails
           mode="commerce"
           name={commerce.name}
-          info={commerce.address + ', ' + commerce.city + ', ' + commerce.provinceName}
+          info={commerce.address + ', ' + commerce.city + ', ' + commerce.province.name}
           infoIcon="md-pin"
           picture={commerce.profilePicture}
           service={service}

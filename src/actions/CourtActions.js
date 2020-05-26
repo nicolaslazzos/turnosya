@@ -1,6 +1,5 @@
 import moment from 'moment';
 import axios from 'axios';
-import { onReservationsCancel } from './ReservationsListActions';
 import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { localDate } from '../utils';
@@ -55,8 +54,9 @@ export const onCourtCreate = ({ name, description, courtTypeId, groundTypeId, pr
     disabledFrom: disabledFrom ? localDate(disabledFrom) : null,
     disabledTo: disabledTo ? localDate(disabledTo) : null
   })
-    .then(() => {
-      // dispatch({ type: ON_COURT_EXISTS });
+    .then(response => {
+      if (response.data[ON_COURT_EXISTS]) return dispatch({ type: ON_COURT_EXISTS });
+
       dispatch({ type: ON_COURT_CREATE });
       navigation.goBack();
     })
@@ -120,9 +120,7 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
   } = courtData;
 
   try {
-    // dispatch({ type: ON_COURT_EXISTS });
-
-    await axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
+    const response = await axios.patch(`${backendUrl}/api/courts/update/${id}/`, {
       name,
       description,
       courtTypeId,
@@ -135,6 +133,8 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
       reservationsToCancel: reservationsToCancel.map(res => res.id)
     });
 
+    if (response.data[ON_COURT_EXISTS]) return dispatch({ type: ON_COURT_EXISTS });
+
     reservationsToCancel.forEach(res => {
       if (res.client) onNotificationSend({ notification: res.notification, profileId: res.client.profileId, notificationTypeId: NOTIFICATION_TYPES.NOTIFICATION });
     });
@@ -142,7 +142,7 @@ export const onCourtUpdate = (courtData, navigation) => async dispatch => {
     dispatch({ type: ON_COURT_UPDATE });
     navigation.goBack();
   } catch (error) {
-    console.error(error);
+    console.log(error);
   }
 };
 

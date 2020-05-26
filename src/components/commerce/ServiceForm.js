@@ -10,20 +10,11 @@ import { onServiceValueChange, onServiceCreate, onServiceUpdate } from '../../ac
 class ServiceForm extends Component {
   state = { nameError: '', durationError: '', priceError: '' };
 
-  componentDidMount() {
-    const { params } = this.props.navigation.state;
-
-    if (params) this.props.onServiceValueChange(params.service);
-  }
-
   onSaveButtonPress() {
     if (this.validateMinimumData()) {
-      const { name, duration, price, description, navigation, commerceId, employeeId, employeesIds } = this.props;
-      const { params } = this.props.navigation.state;
+      const { id, name, duration, price, description, navigation, commerceId, employeeId, employeesIds } = this.props;
 
-      if (params) {
-        const { id } = this.props.navigation.state.params.service;
-
+      if (id) {
         this.props.onServiceUpdate(
           {
             id,
@@ -96,7 +87,7 @@ class ServiceForm extends Component {
 
   render() {
     const { cardStyle } = styles;
-
+    
     return (
       <KeyboardAwareScrollView enableOnAndroid extraScrollHeight={60}>
         <View>
@@ -120,7 +111,7 @@ class ServiceForm extends Component {
                 label="Duración (minutos):"
                 placeholder="Duración del servicio"
                 keyboardType="numeric"
-                value={this.props.duration}
+                value={this.props.duration.toString()}
                 errorMessage={this.state.durationError}
                 onChangeText={duration => this.props.onServiceValueChange({ duration: duration.trim() })}
                 onFocus={() => this.setState({ durationError: '' })}
@@ -132,7 +123,7 @@ class ServiceForm extends Component {
                 label="Precio:"
                 placeholder="Precio del servicio"
                 keyboardType="numeric"
-                value={this.props.price}
+                value={this.props.price.toString()}
                 errorMessage={this.state.priceError}
                 onChangeText={price => this.props.onServiceValueChange({ price: price.trim() })}
                 onFocus={() => this.setState({ priceError: '' })}

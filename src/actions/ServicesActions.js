@@ -26,9 +26,10 @@ export const onFormOpen = () => {
 export const onServiceCreate = ({ name, duration, price, description, commerceId, employeesIds }, navigation) => dispatch => {
   dispatch({ type: ON_SERVICE_FORM_SUBMIT });
 
-  axios.post(`${backendUrl}/api/services/create/`, { commerceId, name, description, duration, price, employeesIds })
-    .then(() => {
-      // dispatch({ type: ON_SERVICE_EXISTS });
+  axios.post(`${backendUrl}/api/services/create/`, { commerceId, name, description, duration: parseInt(duration), price: parseFloat(price), employeesIds })
+    .then(response => {
+      if (response.data[ON_SERVICE_EXISTS]) return dispatch({ type: ON_SERVICE_EXISTS });
+
       dispatch({ type: ON_SERVICE_CREATE });
       navigation.goBack();
     });
@@ -51,9 +52,10 @@ export const onServiceDelete = serviceId => dispatch => {
 export const onServiceUpdate = ({ id, name, duration, price, description, employeesIds }, navigation) => dispatch => {
   dispatch({ type: ON_SERVICE_FORM_SUBMIT });
 
-  axios.patch(`${backendUrl}/api/services/update/${id}/`, { name, description, duration, price, employeesIds })
-    .then(() => {
-      // dispatch({ type: ON_SERVICE_EXISTS });
+  axios.patch(`${backendUrl}/api/services/update/${id}/`, { name, description, duration: parseInt(duration), price: parseFloat(price), employeesIds })
+    .then(response => {
+      if (response.data[ON_SERVICE_EXISTS]) return dispatch({ type: ON_SERVICE_EXISTS });
+
       dispatch({ type: ON_SERVICE_UPDATE });
       navigation.goBack();
     })

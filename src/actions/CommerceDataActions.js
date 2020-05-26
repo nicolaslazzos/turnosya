@@ -5,7 +5,6 @@ import { userReauthenticate } from './AuthActions';
 import { ROLES } from '../constants';
 import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
-import { onReservationsCancel } from './ReservationsListActions';
 import { localDate } from '../utils';
 import {
   ON_REGISTER_COMMERCE,

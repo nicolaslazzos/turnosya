@@ -2,7 +2,6 @@ import firebase from 'firebase/app';
 import 'firebase/firestore';
 import moment from 'moment';
 import axios from 'axios';
-import { onReservationsCancel } from './ReservationsListActions';
 import { onNotificationSend } from './NotificationActions';
 import { NOTIFICATION_TYPES } from '../constants';
 import { localDate } from '../utils';
@@ -122,7 +121,6 @@ export const onScheduleUpdate = scheduleData => async dispatch => {
     reservationMinLength,
     startDate,
     endDate,
-    schedules,
     reservationsToCancel,
     employeeId,
   } = scheduleData;
